@@ -9,6 +9,8 @@ export const TetrisGame = () => {
     const canvas: HTMLCanvasElement = document.querySelector("canvas")!;
     const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
 
+    const keyState = new Map();
+
     const boardWidth = 10;
     const boardHeight = 20;
     const boardBufferHeight = 4;
@@ -398,6 +400,10 @@ export const TetrisGame = () => {
           currentPiece.position.x--;
           x = currentPiece.position.x + tile.x;
         }
+        while (isNotEmpty(x, y)) {
+          currentPiece.position.y--;
+          y = currentPiece.position.y + tile.y;
+        }
       }
 
       setCurrentPiece();
@@ -446,42 +452,23 @@ export const TetrisGame = () => {
       return false;
     }
 
+    function isNotEmpty(x: number, y: number) {
+      return !isInvalid(x, y) && board[y][x] != 0;
+    }
+
     function detectCollision(x: number, y: number) {
-      const heightOutOfBounds = y >= boardHeight + boardBufferHeight || y < 0;
-      const widthOutOfBounds = x >= boardWidth || x < 0;
-      if (
-        widthOutOfBounds ||
-        heightOutOfBounds ||
-        (!widthOutOfBounds && !heightOutOfBounds && board[y][x] != 0)
-      ) {
+      if (isInvalid(x, y) || isNotEmpty(x, y)) {
         return true;
       }
       return false;
     }
 
     window.addEventListener("keydown", (e) => {
-      switch (e.key) {
-        case "ArrowLeft":
-          move("left");
-          break;
-        case "ArrowRight":
-          move("right");
-          break;
-        case "ArrowDown":
-          move("down");
-          break;
-        case "ArrowUp":
-          rotate(1);
-          break;
-        case "z":
-          rotate(-1);
-          break;
-        case " ":
-          for (let i = 0; i < boardHeight + boardBufferHeight; i++) {
-            move("down");
-          }
-          break;
-      }
+      keyState.set(e.key, true);
+    });
+
+    window.addEventListener("keyup", (e) => {
+      keyState.set(e.key, false);
     });
 
     function isInvalidLowX(x: number) {
@@ -562,16 +549,67 @@ export const TetrisGame = () => {
       }
     }
 
+    let timer = 0;
+    let rotationTimer = 0;
+    let collisionTimer = 0;
     function gameLoop() {
       requestAnimationFrame(gameLoop);
+
+      if (timer > 0) {
+        timer--;
+      }
+      if (rotationTimer > 0) {
+        rotationTimer--;
+      }
+      if (collisionTimer > 0) {
+        collisionTimer--;
+      }
+      if (keyState.get("ArrowLeft") && timer == 0) {
+        move("left");
+        timer = 5;
+        collisionTimer = 15;
+      }
+      if (keyState.get("ArrowRight") && timer == 0) {
+        move("right");
+        timer = 5;
+        collisionTimer = 15;
+      }
+      if (keyState.get("ArrowDown") && timer == 0) {
+        move("down");
+        timer = 5;
+        collisionTimer = 15;
+      }
+      if (keyState.get("ArrowUp") && rotationTimer == 0) {
+        rotate(1);
+        rotationTimer = 15;
+        collisionTimer = 15;
+      }
+      if (keyState.get("z") && rotationTimer == 0) {
+        rotate(-1);
+        rotationTimer = 15;
+        collisionTimer = 15;
+      }
+      if (keyState.get(" ") && timer == 0) {
+        for (let i = 0; i < boardHeight + boardBufferHeight; i++) {
+          move("down");
+        }
+        timer = 5;
+      }
 
       if (bottomTilesCollide(1)) {
         if (currentPiece.position.y < boardBufferHeight) {
           resetBoard();
         }
-        clearLines();
-        currentPiece = newPiece();
-        setCurrentPiece();
+
+        if (collisionTimer == 0) {
+          collisionTimer = 15;
+        }
+
+        if (collisionTimer < 5) {
+          clearLines();
+          currentPiece = newPiece();
+          setCurrentPiece();
+        }
       }
       draw();
     }
