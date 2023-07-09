@@ -388,8 +388,9 @@ export const TetrisGame = () => {
       const pattern = getCurrentPattern();
 
       for (let i = 0; i < pattern.length; i++) {
-        const y = currentPiece.position.y + pattern[i].y;
-        const x = currentPiece.position.x + pattern[i].x;
+        const tile = pattern[i];
+        const y = currentPiece.position.y + tile.y;
+        const x = currentPiece.position.x + tile.x;
         setBoard(x, y, 0);
       }
     }
@@ -415,6 +416,35 @@ export const TetrisGame = () => {
       setCurrentPiece();
     }
 
+    function moveOutTheWay(tile: { x: number; y: number }) {
+      let x = currentPiece.position.x + tile.x;
+      let y = currentPiece.position.y + tile.y;
+      while (isInvalidHighY(y)) {
+        currentPiece.position.y++;
+        y = currentPiece.position.y + tile.y;
+      }
+      while (isInvalidLowY(y)) {
+        currentPiece.position.y--;
+        y = currentPiece.position.y + tile.y;
+      }
+      while (isInvalidLowX(x)) {
+        currentPiece.position.x++;
+        x = currentPiece.position.x + tile.x;
+      }
+      while (isInvalidHighX(x)) {
+        currentPiece.position.x--;
+        x = currentPiece.position.x + tile.x;
+      }
+      while (isNotEmpty(x, y)) {
+        currentPiece.position.y--;
+        y = currentPiece.position.y + tile.y;
+      }
+      while (isOccupied(x, y)) {
+        currentPiece.position.y--;
+        y = currentPiece.position.y + tile.y;
+      }
+    }
+
     function rotate(degrees: number) {
       resetCurrentPiece();
 
@@ -429,28 +459,7 @@ export const TetrisGame = () => {
       const pattern = getCurrentPattern();
       for (let i = 0; i < pattern.length; i++) {
         const tile = pattern[i];
-        let x = currentPiece.position.x + tile.x;
-        let y = currentPiece.position.y + tile.y;
-        while (isInvalidHighY(y)) {
-          currentPiece.position.y++;
-          y = currentPiece.position.y + tile.y;
-        }
-        while (isInvalidLowY(y)) {
-          currentPiece.position.y--;
-          y = currentPiece.position.y + tile.y;
-        }
-        while (isInvalidLowX(x)) {
-          currentPiece.position.x++;
-          x = currentPiece.position.x + tile.x;
-        }
-        while (isInvalidHighX(x)) {
-          currentPiece.position.x--;
-          x = currentPiece.position.x + tile.x;
-        }
-        while (isNotEmpty(x, y)) {
-          currentPiece.position.y--;
-          y = currentPiece.position.y + tile.y;
-        }
+        moveOutTheWay(tile);
       }
 
       setCurrentPiece();
@@ -550,6 +559,10 @@ export const TetrisGame = () => {
       return isInvalidX(x) || isInvalidY(y);
     }
 
+    function isOccupied(x: number, y: number) {
+      return getBoard(x, y) != 0;
+    }
+
     function getBoard(x: number, y: number) {
       if (isInvalid(x, y)) {
         throw Error(`Invalid position (${x},${y}).`);
@@ -558,9 +571,21 @@ export const TetrisGame = () => {
       return board[y][x];
     }
 
-    function setBoard(x: number, y: number, value: number) {
+    function setBoard(
+      x: number,
+      y: number,
+      value: number,
+      ignoreOccupied: boolean = false
+    ) {
       if (isInvalid(x, y)) {
         throw Error(`Invalid position (${x},${y}).`);
+      }
+      if (
+        !ignoreOccupied &&
+        isOccupied(x, y) &&
+        getBoard(x, y) != currentPiece.piece
+      ) {
+        throw Error(`Already occupied (${x}, ${y})`);
       }
 
       board[y][x] = value;
@@ -569,18 +594,18 @@ export const TetrisGame = () => {
     function resetBoard() {
       for (let i = 0; i < boardHeight + boardBufferHeight; i++) {
         for (let j = 0; j < boardWidth; j++) {
-          setBoard(j, i, 0);
+          setBoard(j, i, 0, true);
         }
       }
     }
 
     function clearLine(r: number) {
       for (let i = 0; i < boardWidth; i++) {
-        setBoard(i, r, 0);
+        setBoard(i, r, 0, true);
       }
       for (let i = r; i > 0; i--) {
         for (let j = 0; j < boardWidth; j++) {
-          setBoard(j, i, getBoard(j, i - 1));
+          setBoard(j, i, getBoard(j, i - 1), true);
         }
       }
     }
@@ -629,35 +654,35 @@ export const TetrisGame = () => {
         isSwapped = true;
       }
       if (keyState.get("ArrowLeft") && timer == 0) {
-        move("left");
         timer = 5;
         collisionTimer = 15;
+        move("left");
       }
       if (keyState.get("ArrowRight") && timer == 0) {
-        move("right");
         timer = 5;
         collisionTimer = 15;
+        move("right");
       }
       if (keyState.get("ArrowDown") && timer == 0) {
-        move("down");
         timer = 5;
         collisionTimer = 15;
+        move("down");
       }
       if (keyState.get("ArrowUp") && rotationTimer == 0) {
-        rotate(1);
         rotationTimer = 15;
         collisionTimer = 15;
+        rotate(1);
       }
       if (keyState.get("z") && rotationTimer == 0) {
-        rotate(-1);
         rotationTimer = 15;
         collisionTimer = 15;
+        rotate(-1);
       }
       if (keyState.get(" ") && timer == 0) {
-        for (let i = 0; i < boardHeight + boardBufferHeight; i++) {
+        timer = 10;
+        while (!bottomTilesCollide(1)) {
           move("down");
         }
-        timer = 5;
       }
 
       if (bottomTilesCollide(1)) {
