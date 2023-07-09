@@ -10,6 +10,8 @@ export const TetrisGame = () => {
     const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
 
     const keyState = new Map();
+    let holdPiece = 0;
+    let isSwapped = false;
     const queueSize = 5;
     const piecesQueue: number[] = [];
     for (let i = 0; i <= queueSize; i++) {
@@ -308,6 +310,21 @@ export const TetrisGame = () => {
       ctx.fill();
       ctx.closePath();
 
+      // Hold
+      if (holdPiece != 0) {
+        const pattern = getPattern(holdPiece, 0);
+        for (let i = 0; i < pattern.length; i++) {
+          const tile = pattern[i];
+          const x = tile.x * tileSize + boardPadding.left * 0.25;
+          const y = (4 + tile.y) * tileSize + boardPadding.top;
+          ctx.beginPath();
+          ctx.rect(x, y, tileSize, tileSize);
+          ctx.fillStyle = pieces[holdPiece].color;
+          ctx.fill();
+          ctx.closePath();
+        }
+      }
+
       // Queue
       for (let i = piecesQueue.length - 1; i >= 0; i--) {
         const pattern = getPattern(piecesQueue[i], 0);
@@ -592,6 +609,19 @@ export const TetrisGame = () => {
       if (collisionTimer > 0) {
         collisionTimer--;
       }
+      if (keyState.get("c") && !isSwapped) {
+        timer = 10;
+        resetCurrentPiece();
+        if (holdPiece == 0) {
+          holdPiece = currentPiece.piece;
+          currentPiece = newPiece();
+          piecesQueue.push(randomPiece());
+          setCurrentPiece();
+        } else {
+          [holdPiece, currentPiece.piece] = [currentPiece.piece, holdPiece];
+        }
+        isSwapped = true;
+      }
       if (keyState.get("ArrowLeft") && timer == 0) {
         move("left");
         timer = 5;
@@ -638,6 +668,7 @@ export const TetrisGame = () => {
           currentPiece = newPiece();
           piecesQueue.push(randomPiece());
           setCurrentPiece();
+          isSwapped = false;
         }
       }
       draw();
