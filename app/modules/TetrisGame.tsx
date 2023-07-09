@@ -374,17 +374,7 @@ export const TetrisGame = () => {
       }
     }
 
-    function setCurrentPiece() {
-      const pattern = getCurrentPattern();
-
-      for (let i = 0; i < pattern.length; i++) {
-        const y = currentPiece.position.y + pattern[i].y;
-        const x = currentPiece.position.x + pattern[i].x;
-        setBoard(x, y, currentPiece.piece);
-      }
-    }
-
-    function resetCurrentPiece() {
+    function setCurrentPiece(value: number = currentPiece.piece) {
       const pattern = getCurrentPattern();
 
       for (let i = 0; i < pattern.length; i++) {
@@ -392,8 +382,12 @@ export const TetrisGame = () => {
         moveOutTheWay(tile, true);
         let y = currentPiece.position.y + tile.y;
         let x = currentPiece.position.x + tile.x;
-        setBoard(x, y, 0);
+        setBoard(x, y, value);
       }
+    }
+
+    function resetCurrentPiece() {
+      setCurrentPiece(0);
     }
 
     function move(direction: string) {
@@ -423,27 +417,32 @@ export const TetrisGame = () => {
       tile: { x: number; y: number },
       ignoreOccupied: boolean = false
     ) {
-      let x = currentPiece.position.x + tile.x;
-      let y = currentPiece.position.y + tile.y;
+      let x = (currentPiece.position.x + tile.x) % boardWidth;
+      let y =
+        (currentPiece.position.y + tile.y) % (boardHeight + boardBufferHeight);
       while (isInvalidHighY(y) && count < 100) {
         count++;
         currentPiece.position.y++;
-        y = currentPiece.position.y + tile.y;
+        y =
+          (currentPiece.position.y + tile.y) %
+          (boardHeight + boardBufferHeight);
       }
       while (isInvalidLowY(y) && count < 100) {
         count++;
         currentPiece.position.y++;
-        y = currentPiece.position.y + tile.y;
+        y =
+          (currentPiece.position.y + tile.y) %
+          (boardHeight + boardBufferHeight);
       }
       while (isInvalidLowX(x) && count < 100) {
         count++;
         currentPiece.position.x++;
-        x = currentPiece.position.x + tile.x;
+        x = (currentPiece.position.x + tile.x) % boardWidth;
       }
       while (isInvalidHighX(x) && count < 100) {
         count++;
         currentPiece.position.x--;
-        x = currentPiece.position.x + tile.x;
+        x = (currentPiece.position.x + tile.x) % boardWidth;
       }
       while (!ignoreOccupied && isOccupied(x, y) && count < 100) {
         count++;
@@ -452,7 +451,9 @@ export const TetrisGame = () => {
         } else {
           currentPiece.position.y++;
         }
-        y = currentPiece.position.y + tile.y;
+        y =
+          (currentPiece.position.y + tile.y) %
+          (boardHeight + boardBufferHeight);
       }
       count = 0;
     }
@@ -571,15 +572,8 @@ export const TetrisGame = () => {
       return isInvalidX(x) || isInvalidY(y);
     }
 
-    function isOccupied(
-      x: number,
-      y: number,
-      excludeCurrentPiece: boolean = false
-    ) {
-      return (
-        getBoard(x, y) != 0 ||
-        (excludeCurrentPiece && getBoard(x, y) != currentPiece.piece)
-      );
+    function isOccupied(x: number, y: number) {
+      return getBoard(x, y) != 0;
     }
 
     function getBoard(x: number, y: number) {
@@ -597,11 +591,7 @@ export const TetrisGame = () => {
       ignoreOccupied: boolean = false
     ) {
       if (isInvalid(x, y)) {
-        throw Error(
-          `Invalid position (${x},${y}). Left tiles: ${JSON.stringify(
-            getLeftTiles(getCurrentPattern())
-          )}`
-        );
+        throw Error(`Invalid position (${x},${y})`);
       }
       if (
         !ignoreOccupied &&
