@@ -10,6 +10,11 @@ export const TetrisGame = () => {
     const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
 
     const keyState = new Map();
+    const queueSize = 5;
+    const piecesQueue: number[] = [];
+    for (let i = 0; i <= queueSize; i++) {
+      piecesQueue.push(randomPiece());
+    }
 
     const boardWidth = 10;
     const boardHeight = 20;
@@ -17,7 +22,7 @@ export const TetrisGame = () => {
     const tileSize = 25;
     const boardPadding = {
       left: canvas.width / 2 - (tileSize * boardWidth) / 2,
-      top: 0,
+      top: canvas.height / 10,
     };
 
     const pieces: any = {
@@ -265,6 +270,10 @@ export const TetrisGame = () => {
       return Array.from(tileMap.values());
     }
 
+    function randomPiece() {
+      return Math.floor(Math.random() * 7) + 1;
+    }
+
     function newPiece(): {
       position: { x: number; y: number };
       piece: number;
@@ -272,7 +281,7 @@ export const TetrisGame = () => {
     } {
       return {
         position: { x: ((boardWidth - 4) / 2) | 0, y: 0 },
-        piece: Math.floor(Math.random() * 7) + 1,
+        piece: piecesQueue.shift() ?? randomPiece(),
         rotation: 0,
       };
     }
@@ -299,13 +308,28 @@ export const TetrisGame = () => {
       ctx.fill();
       ctx.closePath();
 
+      // Queue
+      for (let i = piecesQueue.length - 1; i >= 0; i--) {
+        const pattern = getPattern(piecesQueue[i], 0);
+        for (let j = 0; j < pattern.length; j++) {
+          const tile = pattern[j];
+          const x = (boardWidth + tile.x) * tileSize + boardPadding.left * 1.25;
+          const y = (4 * i + tile.y) * tileSize + boardPadding.top;
+          ctx.beginPath();
+          ctx.rect(x, y, tileSize, tileSize);
+          ctx.fillStyle = pieces[piecesQueue[i]].color;
+          ctx.fill();
+          ctx.closePath();
+        }
+      }
+
       // Grid
       for (let i = 0; i < boardHeight + boardBufferHeight; i++) {
         for (let j = 0; j < boardWidth; j++) {
           ctx.beginPath();
           ctx.rect(
             j * tileSize + boardPadding.left,
-            i * tileSize + boardPadding.top + tileSize,
+            i * tileSize,
             tileSize,
             tileSize
           );
@@ -328,7 +352,7 @@ export const TetrisGame = () => {
     }
 
     function setCurrentPiece() {
-      const pattern = getPattern();
+      const pattern = getCurrentPattern();
 
       for (let i = 0; i < pattern.length; i++) {
         const y = currentPiece.position.y + pattern[i].y;
@@ -338,7 +362,7 @@ export const TetrisGame = () => {
     }
 
     function resetCurrentPiece() {
-      const pattern = getPattern();
+      const pattern = getCurrentPattern();
 
       for (let i = 0; i < pattern.length; i++) {
         const y = currentPiece.position.y + pattern[i].y;
@@ -379,7 +403,7 @@ export const TetrisGame = () => {
 
       currentPiece.rotation %= 4;
 
-      const pattern = getPattern();
+      const pattern = getCurrentPattern();
       for (let i = 0; i < pattern.length; i++) {
         const tile = pattern[i];
         let x = currentPiece.position.x + tile.x;
@@ -409,12 +433,16 @@ export const TetrisGame = () => {
       setCurrentPiece();
     }
 
-    function getPattern() {
+    function getPattern(piece: number, rotation: number) {
+      return pieces[piece].patterns[rotation];
+    }
+
+    function getCurrentPattern() {
       return pieces[currentPiece.piece].patterns[currentPiece.rotation];
     }
 
     function bottomTilesCollide(n: number) {
-      const bottomTiles = getBottomTiles(getPattern());
+      const bottomTiles = getBottomTiles(getCurrentPattern());
 
       for (let i = 0; i < bottomTiles.length; i++) {
         const x = currentPiece.position.x + bottomTiles[i].x;
@@ -427,7 +455,7 @@ export const TetrisGame = () => {
     }
 
     function leftTilesCollide(n: number) {
-      const leftTiles = getLeftTiles(getPattern());
+      const leftTiles = getLeftTiles(getCurrentPattern());
 
       for (let i = 0; i < leftTiles.length; i++) {
         const x = currentPiece.position.x + leftTiles[i].x - n;
@@ -440,7 +468,7 @@ export const TetrisGame = () => {
     }
 
     function rightTilesCollide(n: number) {
-      const rightTiles = getRightTiles(getPattern());
+      const rightTiles = getRightTiles(getCurrentPattern());
 
       for (let i = 0; i < rightTiles.length; i++) {
         const x = currentPiece.position.x + rightTiles[i].x + n;
@@ -608,6 +636,7 @@ export const TetrisGame = () => {
         if (collisionTimer < 5) {
           clearLines();
           currentPiece = newPiece();
+          piecesQueue.push(randomPiece());
           setCurrentPiece();
         }
       }
