@@ -417,32 +417,44 @@ export const TetrisGame = () => {
       setCurrentPiece();
     }
 
+    let count = 0;
+
     function moveOutTheWay(
       tile: { x: number; y: number },
       ignoreOccupied: boolean = false
     ) {
       let x = currentPiece.position.x + tile.x;
       let y = currentPiece.position.y + tile.y;
-      while (isInvalidHighY(y)) {
+      while (isInvalidHighY(y) && count < 100) {
+        count++;
         currentPiece.position.y++;
         y = currentPiece.position.y + tile.y;
       }
-      while (isInvalidLowY(y)) {
-        currentPiece.position.y--;
+      while (isInvalidLowY(y) && count < 100) {
+        count++;
+        currentPiece.position.y++;
         y = currentPiece.position.y + tile.y;
       }
-      while (isInvalidLowX(x)) {
+      while (isInvalidLowX(x) && count < 100) {
+        count++;
         currentPiece.position.x++;
         x = currentPiece.position.x + tile.x;
       }
-      while (isInvalidHighX(x)) {
+      while (isInvalidHighX(x) && count < 100) {
+        count++;
         currentPiece.position.x--;
         x = currentPiece.position.x + tile.x;
       }
-      while (!ignoreOccupied && isOccupied(x, y)) {
-        currentPiece.position.y--;
+      while (!ignoreOccupied && isOccupied(x, y) && count < 100) {
+        count++;
+        if (!isInvalid(x, y + 1) && isOccupied(x, y + 1)) {
+          currentPiece.position.y--;
+        } else {
+          currentPiece.position.y++;
+        }
         y = currentPiece.position.y + tile.y;
       }
+      count = 0;
     }
 
     function rotate(degrees: number) {
@@ -559,8 +571,15 @@ export const TetrisGame = () => {
       return isInvalidX(x) || isInvalidY(y);
     }
 
-    function isOccupied(x: number, y: number) {
-      return getBoard(x, y) != 0;
+    function isOccupied(
+      x: number,
+      y: number,
+      excludeCurrentPiece: boolean = false
+    ) {
+      return (
+        getBoard(x, y) != 0 ||
+        (excludeCurrentPiece && getBoard(x, y) != currentPiece.piece)
+      );
     }
 
     function getBoard(x: number, y: number) {
