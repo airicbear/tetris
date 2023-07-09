@@ -389,8 +389,9 @@ export const TetrisGame = () => {
 
       for (let i = 0; i < pattern.length; i++) {
         const tile = pattern[i];
-        const y = currentPiece.position.y + tile.y;
-        const x = currentPiece.position.x + tile.x;
+        moveOutTheWay(tile, true);
+        let y = currentPiece.position.y + tile.y;
+        let x = currentPiece.position.x + tile.x;
         setBoard(x, y, 0);
       }
     }
@@ -416,7 +417,10 @@ export const TetrisGame = () => {
       setCurrentPiece();
     }
 
-    function moveOutTheWay(tile: { x: number; y: number }) {
+    function moveOutTheWay(
+      tile: { x: number; y: number },
+      ignoreOccupied: boolean = false
+    ) {
       let x = currentPiece.position.x + tile.x;
       let y = currentPiece.position.y + tile.y;
       while (isInvalidHighY(y)) {
@@ -435,11 +439,7 @@ export const TetrisGame = () => {
         currentPiece.position.x--;
         x = currentPiece.position.x + tile.x;
       }
-      while (isNotEmpty(x, y)) {
-        currentPiece.position.y--;
-        y = currentPiece.position.y + tile.y;
-      }
-      while (isOccupied(x, y)) {
+      while (!ignoreOccupied && isOccupied(x, y)) {
         currentPiece.position.y--;
         y = currentPiece.position.y + tile.y;
       }
@@ -578,7 +578,11 @@ export const TetrisGame = () => {
       ignoreOccupied: boolean = false
     ) {
       if (isInvalid(x, y)) {
-        throw Error(`Invalid position (${x},${y}).`);
+        throw Error(
+          `Invalid position (${x},${y}). Left tiles: ${JSON.stringify(
+            getLeftTiles(getCurrentPattern())
+          )}`
+        );
       }
       if (
         !ignoreOccupied &&
