@@ -320,7 +320,10 @@ export const TetrisGame = () => {
           ctx.beginPath();
           ctx.rect(x, y, tileSize, tileSize);
           ctx.fillStyle = pieces[holdPiece].color;
+          ctx.strokeStyle = pieces[holdPiece].color;
+          ctx.lineWidth = 1.3;
           ctx.fill();
+          ctx.stroke();
           ctx.closePath();
         }
       }
@@ -335,7 +338,10 @@ export const TetrisGame = () => {
           ctx.beginPath();
           ctx.rect(x, y, tileSize, tileSize);
           ctx.fillStyle = pieces[piecesQueue[i]].color;
+          ctx.strokeStyle = pieces[piecesQueue[i]].color;
+          ctx.lineWidth = 1.3;
           ctx.fill();
+          ctx.stroke();
           ctx.closePath();
         }
       }
