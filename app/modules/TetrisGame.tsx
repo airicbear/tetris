@@ -34,204 +34,246 @@ export const TetrisGame = () => {
     const PIECES: any = {
       1: {
         color: "aqua",
+        bounds: {
+          0: { xMin: 0, xMax: 3, yMin: 1, yMax: 1 },
+          1: { xMin: 2, xMax: 2, yMin: 1, yMax: 4 },
+          2: { xMin: 0, xMax: 3, yMin: 1, yMax: 1 },
+          3: { xMin: 1, xMax: 1, yMin: 1, yMax: 4 },
+        },
         patterns: {
           0: [
-            { x: 0, y: 0 },
-            { x: 1, y: 0 },
-            { x: 2, y: 0 },
-            { x: 3, y: 0 },
+            { x: 0, y: 1 },
+            { x: 1, y: 1 },
+            { x: 2, y: 1 },
+            { x: 3, y: 1 },
           ],
           1: [
-            { x: 2, y: 0 },
             { x: 2, y: 1 },
             { x: 2, y: 2 },
             { x: 2, y: 3 },
+            { x: 2, y: 4 },
           ],
           2: [
-            { x: 0, y: 0 },
-            { x: 1, y: 0 },
-            { x: 2, y: 0 },
-            { x: 3, y: 0 },
+            { x: 0, y: 1 },
+            { x: 1, y: 1 },
+            { x: 2, y: 1 },
+            { x: 3, y: 1 },
           ],
           3: [
-            { x: 1, y: 0 },
             { x: 1, y: 1 },
             { x: 1, y: 2 },
             { x: 1, y: 3 },
+            { x: 1, y: 4 },
           ],
         },
       },
       2: {
         color: "blue",
+        bounds: {
+          0: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
+          1: { xMin: 1, xMax: 2, yMin: 1, yMax: 3 },
+          2: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
+          3: { xMin: 1, xMax: 2, yMin: 1, yMax: 3 },
+        },
         patterns: {
           0: [
-            { x: 0, y: 0 },
+            { x: 0, y: 1 },
+            { x: 0, y: 2 },
+            { x: 1, y: 2 },
+            { x: 2, y: 2 },
+          ],
+          1: [
+            { x: 1, y: 1 },
+            { x: 2, y: 1 },
+            { x: 1, y: 2 },
+            { x: 1, y: 3 },
+          ],
+          2: [
             { x: 0, y: 1 },
             { x: 1, y: 1 },
             { x: 2, y: 1 },
-          ],
-          1: [
-            { x: 1, y: 0 },
-            { x: 2, y: 0 },
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-          ],
-          2: [
-            { x: 0, y: 0 },
-            { x: 1, y: 0 },
-            { x: 2, y: 0 },
-            { x: 2, y: 1 },
+            { x: 2, y: 2 },
           ],
           3: [
+            { x: 2, y: 3 },
+            { x: 1, y: 3 },
             { x: 2, y: 2 },
-            { x: 1, y: 2 },
             { x: 2, y: 1 },
-            { x: 2, y: 0 },
           ],
         },
       },
       3: {
         color: "orange",
+        bounds: {
+          0: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
+          1: { xMin: 1, xMax: 2, yMin: 0, yMax: 2 },
+          2: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
+          3: { xMin: 0, xMax: 1, yMin: 0, yMax: 2 },
+        },
         patterns: {
           0: [
-            { x: 2, y: 0 },
             { x: 2, y: 1 },
-            { x: 1, y: 1 },
-            { x: 0, y: 1 },
+            { x: 2, y: 2 },
+            { x: 1, y: 2 },
+            { x: 0, y: 2 },
           ],
           1: [
-            { x: 1, y: -1 },
             { x: 1, y: 0 },
+            { x: 1, y: 1 },
+            { x: 1, y: 2 },
+            { x: 2, y: 2 },
+          ],
+          2: [
+            { x: 0, y: 2 },
+            { x: 0, y: 1 },
             { x: 1, y: 1 },
             { x: 2, y: 1 },
           ],
-          2: [
-            { x: 0, y: 1 },
+          3: [
             { x: 0, y: 0 },
             { x: 1, y: 0 },
-            { x: 2, y: 0 },
-          ],
-          3: [
-            { x: 0, y: -1 },
-            { x: 1, y: -1 },
-            { x: 1, y: 0 },
             { x: 1, y: 1 },
+            { x: 1, y: 2 },
           ],
         },
       },
       4: {
         color: "yellow",
+        bounds: {
+          0: { xMin: 1, xMax: 2, yMin: 1, yMax: 2 },
+          1: { xMin: 1, xMax: 2, yMin: 1, yMax: 2 },
+          2: { xMin: 1, xMax: 2, yMin: 1, yMax: 2 },
+          3: { xMin: 1, xMax: 2, yMin: 1, yMax: 2 },
+        },
         patterns: {
           0: [
-            { x: 1, y: 0 },
             { x: 1, y: 1 },
-            { x: 2, y: 0 },
+            { x: 1, y: 2 },
             { x: 2, y: 1 },
+            { x: 2, y: 2 },
           ],
           1: [
-            { x: 1, y: 0 },
             { x: 1, y: 1 },
-            { x: 2, y: 0 },
+            { x: 1, y: 2 },
             { x: 2, y: 1 },
+            { x: 2, y: 2 },
           ],
           2: [
-            { x: 1, y: 0 },
             { x: 1, y: 1 },
-            { x: 2, y: 0 },
+            { x: 1, y: 2 },
             { x: 2, y: 1 },
+            { x: 2, y: 2 },
           ],
           3: [
-            { x: 1, y: 0 },
             { x: 1, y: 1 },
-            { x: 2, y: 0 },
+            { x: 1, y: 2 },
             { x: 2, y: 1 },
+            { x: 2, y: 2 },
           ],
         },
       },
       5: {
         color: "green",
+        bounds: {
+          0: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
+          1: { xMin: 1, xMax: 2, yMin: 0, yMax: 2 },
+          2: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
+          3: { xMin: 0, xMax: 1, yMin: 0, yMax: 2 },
+        },
         patterns: {
           0: [
-            { x: 1, y: 0 },
-            { x: 2, y: 0 },
-            { x: 0, y: 1 },
             { x: 1, y: 1 },
+            { x: 2, y: 1 },
+            { x: 0, y: 2 },
+            { x: 1, y: 2 },
           ],
           1: [
-            { x: 1, y: -1 },
             { x: 1, y: 0 },
-            { x: 2, y: 0 },
+            { x: 1, y: 1 },
             { x: 2, y: 1 },
+            { x: 2, y: 2 },
           ],
           2: [
-            { x: 1, y: 0 },
-            { x: 2, y: 0 },
-            { x: 0, y: 1 },
             { x: 1, y: 1 },
+            { x: 2, y: 1 },
+            { x: 0, y: 2 },
+            { x: 1, y: 2 },
           ],
           3: [
-            { x: 0, y: -1 },
             { x: 0, y: 0 },
-            { x: 1, y: 0 },
+            { x: 0, y: 1 },
             { x: 1, y: 1 },
+            { x: 1, y: 2 },
           ],
         },
       },
       6: {
         color: "purple",
+        bounds: {
+          0: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
+          1: { xMin: 1, xMax: 2, yMin: 1, yMax: 3 },
+          2: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
+          3: { xMin: 0, xMax: 1, yMin: 1, yMax: 3 },
+        },
         patterns: {
           0: [
-            { x: 0, y: 1 },
+            { x: 0, y: 2 },
+            { x: 1, y: 2 },
+            { x: 2, y: 2 },
             { x: 1, y: 1 },
-            { x: 2, y: 1 },
-            { x: 1, y: 0 },
           ],
           1: [
-            { x: 1, y: 0 },
+            { x: 1, y: 1 },
+            { x: 1, y: 2 },
+            { x: 2, y: 2 },
+            { x: 1, y: 3 },
+          ],
+          2: [
+            { x: 0, y: 1 },
             { x: 1, y: 1 },
             { x: 2, y: 1 },
             { x: 1, y: 2 },
           ],
-          2: [
-            { x: 0, y: 0 },
-            { x: 1, y: 0 },
-            { x: 2, y: 0 },
-            { x: 1, y: 1 },
-          ],
           3: [
-            { x: 1, y: 0 },
             { x: 1, y: 1 },
-            { x: 0, y: 1 },
             { x: 1, y: 2 },
+            { x: 0, y: 2 },
+            { x: 1, y: 3 },
           ],
         },
       },
       7: {
         color: "red",
+        bounds: {
+          0: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
+          1: { xMin: 1, xMax: 2, yMin: 0, yMax: 2 },
+          2: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
+          3: { xMin: 0, xMax: 1, yMin: 0, yMax: 2 },
+        },
         patterns: {
           0: [
-            { x: 0, y: 0 },
-            { x: 1, y: 0 },
+            { x: 0, y: 1 },
             { x: 1, y: 1 },
-            { x: 2, y: 1 },
+            { x: 1, y: 2 },
+            { x: 2, y: 2 },
           ],
           1: [
-            { x: 2, y: -1 },
-            { x: 1, y: 0 },
             { x: 2, y: 0 },
             { x: 1, y: 1 },
+            { x: 2, y: 1 },
+            { x: 1, y: 2 },
           ],
           2: [
-            { x: 0, y: 0 },
-            { x: 1, y: 0 },
+            { x: 0, y: 1 },
             { x: 1, y: 1 },
-            { x: 2, y: 1 },
+            { x: 1, y: 2 },
+            { x: 2, y: 2 },
           ],
           3: [
-            { x: 1, y: -1 },
-            { x: 0, y: 0 },
             { x: 1, y: 0 },
             { x: 0, y: 1 },
+            { x: 1, y: 1 },
+            { x: 0, y: 2 },
           ],
         },
       },
@@ -381,6 +423,17 @@ export const TetrisGame = () => {
       }
     }
 
+    function getMinX(pattern: { x: number; y: number }[]) {
+      let minX = 999;
+      for (let i = 0; i < pattern.length; i++) {
+        const tile = pattern[i];
+        if (tile.x < minX) {
+          minX = tile.x;
+        }
+      }
+      return minX;
+    }
+
     function setCurrentPiece(
       value: number = CURRENT_TETROMINO,
       ignoreOccupied: boolean = false
@@ -405,16 +458,16 @@ export const TetrisGame = () => {
 
       switch (direction) {
         case "left":
-          !leftTilesCollide(1) && currentPiece.position.x--;
+          !leftTilesCollide(1) && decrementPositionX();
           break;
         case "right":
-          !rightTilesCollide(1) && currentPiece.position.x++;
+          !rightTilesCollide(1) && incrementPositionX();
           break;
         case "down":
-          !bottomTilesCollide(1) && currentPiece.position.y++;
+          !bottomTilesCollide(1) && incrementPositionY();
           break;
         case "up":
-          currentPiece.position.y--;
+          decrementPositionY();
           break;
       }
 
@@ -426,6 +479,55 @@ export const TetrisGame = () => {
       if (whileLoopCounter >= WHILE_LOOP_MAX) {
         throw Error("While loop maximum exceeded.");
       }
+    }
+
+    function normalizePositionValue(value: number, min: number, max: number) {
+      if (value < min) {
+        value = min;
+      } else if (value >= max) {
+        value = max - 1;
+      }
+      return value;
+    }
+
+    function normalizePositionY(
+      value: number,
+      min: number = 0,
+      max: number = BOARD_HEIGHT + BOARD_BUFFER_HEIGHT
+    ) {
+      return normalizePositionValue(value, min, max);
+    }
+
+    function normalizePositionX(
+      value: number,
+      min: number = -2,
+      max: number = BOARD_WIDTH + 2
+    ) {
+      return normalizePositionValue(value, min, max);
+    }
+
+    function setPositionY(value: number) {
+      currentPiece.position.y = normalizePositionY(value);
+    }
+
+    function incrementPositionY() {
+      setPositionY(currentPiece.position.y + 1);
+    }
+
+    function decrementPositionY() {
+      setPositionY(currentPiece.position.y - 1);
+    }
+
+    function setPositionX(value: number) {
+      currentPiece.position.x = normalizePositionX(value);
+    }
+
+    function incrementPositionX() {
+      setPositionX(currentPiece.position.x + 1);
+    }
+
+    function decrementPositionX() {
+      setPositionX(currentPiece.position.x - 1);
     }
 
     function moveOutTheWay() {
@@ -441,44 +543,54 @@ export const TetrisGame = () => {
           let x = currentPiece.position.x + tile.x;
           let y = currentPiece.position.y + tile.y;
 
-          while (
-            (isInvalidLowY(y) ||
-              (!isInvalid(x, y + 1) && isOccupied(x, y + 1))) &&
-            whileLoopCounter < WHILE_LOOP_MAX
-          ) {
+          let lowY = isInvalidBoardPositionLowY(y);
+          let occLowY =
+            !isInvalidBoardPosition(x, y + 1) && isOccupied(x, y + 1);
+
+          let highY = isInvalidBoardPositionHighY(y);
+          let occHighY =
+            !isInvalidBoardPosition(x, y - 1) && isOccupied(x, y - 1);
+
+          let highX = isInvalidBoardPositionHighX(x);
+          let occHighX =
+            !isInvalidBoardPosition(x + 1, y) && isOccupied(x + 1, y);
+
+          let lowX = isInvalidBoardPositionLowX(x);
+          let occLowX =
+            !isInvalidBoardPosition(x - 1, y) && isOccupied(x - 1, y);
+
+          while ((lowY || occLowY) && whileLoopCounter < WHILE_LOOP_MAX) {
             incrementWhileLoopCounter();
-            currentPiece.position.y--;
+            decrementPositionY();
             y = currentPiece.position.y + tile.y;
+            lowY = isInvalidBoardPositionLowY(y);
+            occLowY = !isInvalidBoardPosition(x, y + 1) && isOccupied(x, y + 1);
           }
 
-          while (
-            (isInvalidHighY(y) ||
-              (!isInvalid(x, y - 1) && isOccupied(x, y - 1))) &&
-            whileLoopCounter < WHILE_LOOP_MAX
-          ) {
+          while ((highY || occHighY) && whileLoopCounter < WHILE_LOOP_MAX) {
             incrementWhileLoopCounter();
-            currentPiece.position.y++;
+            incrementPositionY();
             y = currentPiece.position.y + tile.y;
+            highY = isInvalidBoardPositionHighY(y);
+            occHighY =
+              !isInvalidBoardPosition(x, y - 1) && isOccupied(x, y - 1);
           }
 
-          while (
-            (isInvalidHighX(x) ||
-              (!isInvalid(x + 1, y) && isOccupied(x + 1, y))) &&
-            whileLoopCounter < WHILE_LOOP_MAX
-          ) {
+          while ((highX || occHighX) && whileLoopCounter < WHILE_LOOP_MAX) {
             incrementWhileLoopCounter();
-            currentPiece.position.x--;
+            decrementPositionX();
             x = currentPiece.position.x + tile.x;
+            highX = isInvalidBoardPositionHighX(x);
+            occHighX =
+              !isInvalidBoardPosition(x + 1, y) && isOccupied(x + 1, y);
           }
 
-          while (
-            (isInvalidLowX(x) ||
-              (!isInvalid(x - 1, y) && isOccupied(x - 1, y))) &&
-            whileLoopCounter < WHILE_LOOP_MAX
-          ) {
+          while ((lowX || occLowX) && whileLoopCounter < WHILE_LOOP_MAX) {
             incrementWhileLoopCounter();
-            currentPiece.position.x++;
+            incrementPositionX();
             x = currentPiece.position.x + tile.x;
+            lowX = isInvalidBoardPositionLowX(x);
+            occLowX = !isInvalidBoardPosition(x - 1, y) && isOccupied(x - 1, y);
           }
         }
       }
@@ -547,11 +659,11 @@ export const TetrisGame = () => {
     }
 
     function isNotEmpty(x: number, y: number) {
-      return !isInvalid(x, y) && board[y][x] != EMPTY_TETROMINO;
+      return !isInvalidBoardPosition(x, y) && board[y][x] != EMPTY_TETROMINO;
     }
 
     function detectCollision(x: number, y: number) {
-      if (isInvalid(x, y) || isNotEmpty(x, y)) {
+      if (isInvalidBoardPosition(x, y) || isNotEmpty(x, y)) {
         return true;
       }
       return false;
@@ -565,32 +677,32 @@ export const TetrisGame = () => {
       keyState.set(e.key, false);
     });
 
-    function isInvalidLowX(x: number) {
+    function isInvalidBoardPositionLowX(x: number) {
       return x < 0;
     }
 
-    function isInvalidHighX(x: number) {
+    function isInvalidBoardPositionHighX(x: number) {
       return x >= BOARD_WIDTH;
     }
 
-    function isInvalidX(x: number) {
-      return isInvalidLowX(x) || isInvalidHighX(x);
+    function isInvalidBoardPositionX(x: number) {
+      return isInvalidBoardPositionLowX(x) || isInvalidBoardPositionHighX(x);
     }
 
-    function isInvalidLowY(y: number) {
+    function isInvalidBoardPositionLowY(y: number) {
       return y >= BOARD_HEIGHT + BOARD_BUFFER_HEIGHT;
     }
 
-    function isInvalidHighY(y: number) {
+    function isInvalidBoardPositionHighY(y: number) {
       return y < 0;
     }
 
-    function isInvalidY(y: number) {
-      return isInvalidLowY(y) || isInvalidHighY(y);
+    function isInvalidBoardPositionY(y: number) {
+      return isInvalidBoardPositionLowY(y) || isInvalidBoardPositionHighY(y);
     }
 
-    function isInvalid(x: number, y: number) {
-      return isInvalidX(x) || isInvalidY(y);
+    function isInvalidBoardPosition(x: number, y: number) {
+      return isInvalidBoardPositionX(x) || isInvalidBoardPositionY(y);
     }
 
     function isInvalidCurrentPiece() {
@@ -599,7 +711,7 @@ export const TetrisGame = () => {
         const tile = pattern[i];
         const x = currentPiece.position.x + tile.x;
         const y = currentPiece.position.y + tile.y;
-        if (isInvalid(x, y)) {
+        if (isInvalidBoardPosition(x, y)) {
           return true;
         }
       }
@@ -626,7 +738,7 @@ export const TetrisGame = () => {
     }
 
     function getBoard(x: number, y: number) {
-      if (isInvalid(x, y)) {
+      if (isInvalidBoardPosition(x, y)) {
         throw Error(`Invalid position (${x},${y}).`);
       }
 
@@ -639,7 +751,7 @@ export const TetrisGame = () => {
       value: number,
       ignoreOccupied: boolean = false
     ) {
-      if (isInvalid(x, y)) {
+      if (isInvalidBoardPosition(x, y)) {
         throw Error(`Invalid position (${x},${y})`);
       }
       if (!ignoreOccupied && isOccupied(x, y)) {
@@ -687,8 +799,6 @@ export const TetrisGame = () => {
     let rotationTimer = 0;
     let collisionTimer = 0;
     function gameLoop() {
-      requestAnimationFrame(gameLoop);
-
       if (timer > 0) {
         timer--;
       }
@@ -765,6 +875,8 @@ export const TetrisGame = () => {
         }
       }
       draw();
+
+      requestAnimationFrame(gameLoop);
     }
 
     setInterval(() => {
