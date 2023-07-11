@@ -12,6 +12,8 @@ export const TetrisGame = () => {
     const keyState = new Map();
     const EMPTY_TETROMINO = -1;
     const CURRENT_TETROMINO = 0;
+    const WHILE_LOOP_MAX = 999;
+    let whileLoopCounter = 0;
     let holdPiece = EMPTY_TETROMINO;
     let isSwapped = false;
     const QUEUE_SIZE = 5;
@@ -383,6 +385,7 @@ export const TetrisGame = () => {
       value: number = CURRENT_TETROMINO,
       ignoreOccupied: boolean = false
     ) {
+      moveOutTheWay();
       const pattern = getCurrentPattern();
 
       for (let i = 0; i < pattern.length; i++) {
@@ -398,7 +401,6 @@ export const TetrisGame = () => {
     }
 
     function move(direction: string) {
-      moveOutTheWay();
       resetCurrentPiece();
 
       switch (direction) {
@@ -419,10 +421,24 @@ export const TetrisGame = () => {
       setCurrentPiece();
     }
 
+    function incrementWhileLoopCounter() {
+      whileLoopCounter++;
+      if (whileLoopCounter >= WHILE_LOOP_MAX) {
+        throw Error("While loop maximum exceeded.");
+      }
+    }
+
     function moveOutTheWay() {
       const pattern = getCurrentPattern();
 
-      while (isInvalidCurrentPiece() || isOccupiedCurrentPiece()) {
+      while (
+        (isInvalidCurrentPiece() || isOccupiedCurrentPiece()) &&
+        whileLoopCounter < WHILE_LOOP_MAX
+      ) {
+        whileLoopCounter++;
+        if (whileLoopCounter >= WHILE_LOOP_MAX) {
+          throw Error("While loop maximum exceeded.");
+        }
         for (let i = 0; i < pattern.length; i++) {
           const tile = pattern[i];
           let x = currentPiece.position.x + tile.x;
@@ -461,10 +477,10 @@ export const TetrisGame = () => {
           }
         }
       }
+      whileLoopCounter = 0;
     }
 
     function rotate(degrees: number) {
-      moveOutTheWay();
       resetCurrentPiece();
 
       currentPiece.rotation += degrees;
@@ -475,10 +491,7 @@ export const TetrisGame = () => {
 
       currentPiece.rotation %= 4;
 
-      moveOutTheWay();
-      if (!isInvalidCurrentPiece()) {
-        setCurrentPiece();
-      }
+      setCurrentPiece();
     }
 
     function getPattern(piece: number, rotation: number) {
@@ -720,9 +733,11 @@ export const TetrisGame = () => {
       }
       if (keyState.get(" ") && timer == 0) {
         timer = 10;
-        while (!bottomTilesCollide(1)) {
+        while (!bottomTilesCollide(1) && whileLoopCounter < WHILE_LOOP_MAX) {
+          incrementWhileLoopCounter();
           move("down");
         }
+        whileLoopCounter = 0;
       }
 
       if (bottomTilesCollide(1)) {
