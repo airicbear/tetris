@@ -435,43 +435,48 @@ export const TetrisGame = () => {
         (isInvalidCurrentPiece() || isOccupiedCurrentPiece()) &&
         whileLoopCounter < WHILE_LOOP_MAX
       ) {
-        whileLoopCounter++;
-        if (whileLoopCounter >= WHILE_LOOP_MAX) {
-          throw Error("While loop maximum exceeded.");
-        }
+        incrementWhileLoopCounter();
         for (let i = 0; i < pattern.length; i++) {
           const tile = pattern[i];
           let x = currentPiece.position.x + tile.x;
           let y = currentPiece.position.y + tile.y;
 
-          if (
-            isInvalidLowY(y) ||
-            (!isInvalid(x, y + 1) && isOccupied(x, y + 1))
+          while (
+            (isInvalidLowY(y) ||
+              (!isInvalid(x, y + 1) && isOccupied(x, y + 1))) &&
+            whileLoopCounter < WHILE_LOOP_MAX
           ) {
+            incrementWhileLoopCounter();
             currentPiece.position.y--;
             y = currentPiece.position.y + tile.y;
           }
 
-          if (
-            isInvalidHighY(y) ||
-            (!isInvalid(x, y - 1) && isOccupied(x, y - 1))
+          while (
+            (isInvalidHighY(y) ||
+              (!isInvalid(x, y - 1) && isOccupied(x, y - 1))) &&
+            whileLoopCounter < WHILE_LOOP_MAX
           ) {
+            incrementWhileLoopCounter();
             currentPiece.position.y++;
             y = currentPiece.position.y + tile.y;
           }
 
-          if (
-            isInvalidHighX(x) ||
-            (!isInvalid(x + 1, y) && isOccupied(x + 1, y))
+          while (
+            (isInvalidHighX(x) ||
+              (!isInvalid(x + 1, y) && isOccupied(x + 1, y))) &&
+            whileLoopCounter < WHILE_LOOP_MAX
           ) {
+            incrementWhileLoopCounter();
             currentPiece.position.x--;
             x = currentPiece.position.x + tile.x;
           }
 
-          if (
-            isInvalidLowX(x) ||
-            (!isInvalid(x - 1, y) && isOccupied(x - 1, y))
+          while (
+            (isInvalidLowX(x) ||
+              (!isInvalid(x - 1, y) && isOccupied(x - 1, y))) &&
+            whileLoopCounter < WHILE_LOOP_MAX
           ) {
+            incrementWhileLoopCounter();
             currentPiece.position.x++;
             x = currentPiece.position.x + tile.x;
           }
