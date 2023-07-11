@@ -445,18 +445,18 @@ export const TetrisGame = () => {
           let y = currentPiece.position.y + tile.y;
 
           if (
-            isInvalidHighY(y) ||
-            (!isInvalid(x, y - 1) && isOccupied(x, y - 1))
-          ) {
-            currentPiece.position.y++;
-            y = currentPiece.position.y + tile.y;
-          }
-
-          if (
             isInvalidLowY(y) ||
             (!isInvalid(x, y + 1) && isOccupied(x, y + 1))
           ) {
             currentPiece.position.y--;
+            y = currentPiece.position.y + tile.y;
+          }
+
+          if (
+            isInvalidHighY(y) ||
+            (!isInvalid(x, y - 1) && isOccupied(x, y - 1))
+          ) {
+            currentPiece.position.y++;
             y = currentPiece.position.y + tile.y;
           }
 
