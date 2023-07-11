@@ -10,24 +10,26 @@ export const TetrisGame = () => {
     const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
 
     const keyState = new Map();
-    let holdPiece = 0;
+    const EMPTY_TETROMINO = -1;
+    const CURRENT_TETROMINO = 0;
+    let holdPiece = EMPTY_TETROMINO;
     let isSwapped = false;
-    const queueSize = 5;
+    const QUEUE_SIZE = 5;
     const piecesQueue: number[] = [];
-    for (let i = 0; i <= queueSize; i++) {
+    for (let i = 0; i <= QUEUE_SIZE; i++) {
       piecesQueue.push(randomPiece());
     }
 
-    const boardWidth = 10;
-    const boardHeight = 20;
-    const boardBufferHeight = 4;
-    const tileSize = 25;
-    const boardPadding = {
-      left: canvas.width / 2 - (tileSize * boardWidth) / 2,
+    const BOARD_WIDTH = 10;
+    const BOARD_HEIGHT = 20;
+    const BOARD_BUFFER_HEIGHT = 4;
+    const TILE_SIZE = 25;
+    const BOARD_PADDING = {
+      left: canvas.width / 2 - (TILE_SIZE * BOARD_WIDTH) / 2,
       top: canvas.height / 10,
     };
 
-    const pieces: any = {
+    const PIECES: any = {
       1: {
         color: "aqua",
         patterns: {
@@ -282,7 +284,7 @@ export const TetrisGame = () => {
       rotation: number;
     } {
       return {
-        position: { x: ((boardWidth - 4) / 2) | 0, y: 0 },
+        position: { x: ((BOARD_WIDTH - 4) / 2) | 0, y: 0 },
         piece: piecesQueue.shift() ?? randomPiece(),
         rotation: 0,
       };
@@ -295,8 +297,8 @@ export const TetrisGame = () => {
     } = newPiece();
 
     const board: Array<Array<number>> = [];
-    for (let i = 0; i < boardHeight + boardBufferHeight; i++) {
-      board.push(Array(boardWidth).fill(0));
+    for (let i = 0; i < BOARD_HEIGHT + BOARD_BUFFER_HEIGHT; i++) {
+      board.push(Array(BOARD_WIDTH).fill(EMPTY_TETROMINO));
     }
     let backgroundColor = "black";
     let tileFillColor = "black";
@@ -311,16 +313,16 @@ export const TetrisGame = () => {
       ctx.closePath();
 
       // Hold
-      if (holdPiece != 0) {
+      if (holdPiece != EMPTY_TETROMINO) {
         const pattern = getPattern(holdPiece, 0);
         for (let i = 0; i < pattern.length; i++) {
           const tile = pattern[i];
-          const x = tile.x * tileSize + boardPadding.left * 0.25;
-          const y = (4 + tile.y) * tileSize + boardPadding.top;
+          const x = tile.x * TILE_SIZE + BOARD_PADDING.left * 0.25;
+          const y = (4 + tile.y) * TILE_SIZE + BOARD_PADDING.top;
           ctx.beginPath();
-          ctx.rect(x, y, tileSize, tileSize);
-          ctx.fillStyle = pieces[holdPiece].color;
-          ctx.strokeStyle = pieces[holdPiece].color;
+          ctx.rect(x, y, TILE_SIZE, TILE_SIZE);
+          ctx.fillStyle = PIECES[holdPiece].color;
+          ctx.strokeStyle = PIECES[holdPiece].color;
           ctx.lineWidth = 1.3;
           ctx.fill();
           ctx.stroke();
@@ -333,12 +335,13 @@ export const TetrisGame = () => {
         const pattern = getPattern(piecesQueue[i], 0);
         for (let j = 0; j < pattern.length; j++) {
           const tile = pattern[j];
-          const x = (boardWidth + tile.x) * tileSize + boardPadding.left * 1.25;
-          const y = (4 * i + tile.y) * tileSize + boardPadding.top;
+          const x =
+            (BOARD_WIDTH + tile.x) * TILE_SIZE + BOARD_PADDING.left * 1.25;
+          const y = (4 * i + tile.y) * TILE_SIZE + BOARD_PADDING.top;
           ctx.beginPath();
-          ctx.rect(x, y, tileSize, tileSize);
-          ctx.fillStyle = pieces[piecesQueue[i]].color;
-          ctx.strokeStyle = pieces[piecesQueue[i]].color;
+          ctx.rect(x, y, TILE_SIZE, TILE_SIZE);
+          ctx.fillStyle = PIECES[piecesQueue[i]].color;
+          ctx.strokeStyle = PIECES[piecesQueue[i]].color;
           ctx.lineWidth = 1.3;
           ctx.fill();
           ctx.stroke();
@@ -347,17 +350,17 @@ export const TetrisGame = () => {
       }
 
       // Grid
-      for (let i = 0; i < boardHeight + boardBufferHeight; i++) {
-        for (let j = 0; j < boardWidth; j++) {
+      for (let i = 0; i < BOARD_HEIGHT + BOARD_BUFFER_HEIGHT; i++) {
+        for (let j = 0; j < BOARD_WIDTH; j++) {
           ctx.beginPath();
           ctx.rect(
-            j * tileSize + boardPadding.left,
-            i * tileSize,
-            tileSize,
-            tileSize
+            j * TILE_SIZE + BOARD_PADDING.left,
+            i * TILE_SIZE,
+            TILE_SIZE,
+            TILE_SIZE
           );
-          if (getBoard(j, i) == 0) {
-            if (i < boardBufferHeight) {
+          if (getBoard(j, i) == EMPTY_TETROMINO) {
+            if (i < BOARD_BUFFER_HEIGHT) {
               ctx.fillStyle = "black";
               ctx.strokeStyle = "black";
             } else {
@@ -365,8 +368,10 @@ export const TetrisGame = () => {
               ctx.strokeStyle = tileStrokeColor;
             }
             ctx.stroke();
+          } else if (getBoard(j, i) == CURRENT_TETROMINO) {
+            ctx.fillStyle = PIECES[currentPiece.piece].color;
           } else {
-            ctx.fillStyle = pieces[board[i][j]].color;
+            ctx.fillStyle = PIECES[board[i][j]].color;
           }
           ctx.fill();
           ctx.closePath();
@@ -374,23 +379,26 @@ export const TetrisGame = () => {
       }
     }
 
-    function setCurrentPiece(value: number = currentPiece.piece) {
+    function setCurrentPiece(
+      value: number = CURRENT_TETROMINO,
+      ignoreOccupied: boolean = false
+    ) {
       const pattern = getCurrentPattern();
 
       for (let i = 0; i < pattern.length; i++) {
         const tile = pattern[i];
-        moveOutTheWay(tile, true);
         let y = currentPiece.position.y + tile.y;
         let x = currentPiece.position.x + tile.x;
-        setBoard(x, y, value);
+        setBoard(x, y, value, ignoreOccupied);
       }
     }
 
     function resetCurrentPiece() {
-      setCurrentPiece(0);
+      setCurrentPiece(EMPTY_TETROMINO, true);
     }
 
     function move(direction: string) {
+      moveOutTheWay();
       resetCurrentPiece();
 
       switch (direction) {
@@ -411,54 +419,52 @@ export const TetrisGame = () => {
       setCurrentPiece();
     }
 
-    let count = 0;
+    function moveOutTheWay() {
+      const pattern = getCurrentPattern();
 
-    function moveOutTheWay(
-      tile: { x: number; y: number },
-      ignoreOccupied: boolean = false
-    ) {
-      let x = (currentPiece.position.x + tile.x) % boardWidth;
-      let y =
-        (currentPiece.position.y + tile.y) % (boardHeight + boardBufferHeight);
-      while (isInvalidHighY(y) && count < 100) {
-        count++;
-        currentPiece.position.y++;
-        y =
-          (currentPiece.position.y + tile.y) %
-          (boardHeight + boardBufferHeight);
-      }
-      while (isInvalidLowY(y) && count < 100) {
-        count++;
-        currentPiece.position.y++;
-        y =
-          (currentPiece.position.y + tile.y) %
-          (boardHeight + boardBufferHeight);
-      }
-      while (isInvalidLowX(x) && count < 100) {
-        count++;
-        currentPiece.position.x++;
-        x = (currentPiece.position.x + tile.x) % boardWidth;
-      }
-      while (isInvalidHighX(x) && count < 100) {
-        count++;
-        currentPiece.position.x--;
-        x = (currentPiece.position.x + tile.x) % boardWidth;
-      }
-      while (!ignoreOccupied && isOccupied(x, y) && count < 100) {
-        count++;
-        if (!isInvalid(x, y + 1) && isOccupied(x, y + 1)) {
-          currentPiece.position.y--;
-        } else {
-          currentPiece.position.y++;
+      while (isInvalidCurrentPiece() || isOccupiedCurrentPiece()) {
+        for (let i = 0; i < pattern.length; i++) {
+          const tile = pattern[i];
+          let x = currentPiece.position.x + tile.x;
+          let y = currentPiece.position.y + tile.y;
+
+          if (
+            isInvalidHighY(y) ||
+            (!isInvalid(x, y - 1) && isOccupied(x, y - 1))
+          ) {
+            currentPiece.position.y++;
+            y = currentPiece.position.y + tile.y;
+          }
+
+          if (
+            isInvalidLowY(y) ||
+            (!isInvalid(x, y + 1) && isOccupied(x, y + 1))
+          ) {
+            currentPiece.position.y--;
+            y = currentPiece.position.y + tile.y;
+          }
+
+          if (
+            isInvalidHighX(x) ||
+            (!isInvalid(x + 1, y) && isOccupied(x + 1, y))
+          ) {
+            currentPiece.position.x--;
+            x = currentPiece.position.x + tile.x;
+          }
+
+          if (
+            isInvalidLowX(x) ||
+            (!isInvalid(x - 1, y) && isOccupied(x - 1, y))
+          ) {
+            currentPiece.position.x++;
+            x = currentPiece.position.x + tile.x;
+          }
         }
-        y =
-          (currentPiece.position.y + tile.y) %
-          (boardHeight + boardBufferHeight);
       }
-      count = 0;
     }
 
     function rotate(degrees: number) {
+      moveOutTheWay();
       resetCurrentPiece();
 
       currentPiece.rotation += degrees;
@@ -469,21 +475,18 @@ export const TetrisGame = () => {
 
       currentPiece.rotation %= 4;
 
-      const pattern = getCurrentPattern();
-      for (let i = 0; i < pattern.length; i++) {
-        const tile = pattern[i];
-        moveOutTheWay(tile);
+      moveOutTheWay();
+      if (!isInvalidCurrentPiece()) {
+        setCurrentPiece();
       }
-
-      setCurrentPiece();
     }
 
     function getPattern(piece: number, rotation: number) {
-      return pieces[piece].patterns[rotation];
+      return PIECES[piece].patterns[rotation];
     }
 
     function getCurrentPattern() {
-      return pieces[currentPiece.piece].patterns[currentPiece.rotation];
+      return PIECES[currentPiece.piece].patterns[currentPiece.rotation];
     }
 
     function bottomTilesCollide(n: number) {
@@ -526,7 +529,7 @@ export const TetrisGame = () => {
     }
 
     function isNotEmpty(x: number, y: number) {
-      return !isInvalid(x, y) && board[y][x] != 0;
+      return !isInvalid(x, y) && board[y][x] != EMPTY_TETROMINO;
     }
 
     function detectCollision(x: number, y: number) {
@@ -549,7 +552,7 @@ export const TetrisGame = () => {
     }
 
     function isInvalidHighX(x: number) {
-      return x >= boardWidth;
+      return x >= BOARD_WIDTH;
     }
 
     function isInvalidX(x: number) {
@@ -557,7 +560,7 @@ export const TetrisGame = () => {
     }
 
     function isInvalidLowY(y: number) {
-      return y >= boardHeight + boardBufferHeight;
+      return y >= BOARD_HEIGHT + BOARD_BUFFER_HEIGHT;
     }
 
     function isInvalidHighY(y: number) {
@@ -572,8 +575,36 @@ export const TetrisGame = () => {
       return isInvalidX(x) || isInvalidY(y);
     }
 
+    function isInvalidCurrentPiece() {
+      const pattern = getCurrentPattern();
+      for (let i = 0; i < pattern.length; i++) {
+        const tile = pattern[i];
+        const x = currentPiece.position.x + tile.x;
+        const y = currentPiece.position.y + tile.y;
+        if (isInvalid(x, y)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function isOccupiedCurrentPiece() {
+      const pattern = getCurrentPattern();
+      for (let i = 0; i < pattern.length; i++) {
+        const tile = pattern[i];
+        const x = currentPiece.position.x + tile.x;
+        const y = currentPiece.position.y + tile.y;
+        if (isOccupied(x, y)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     function isOccupied(x: number, y: number) {
-      return getBoard(x, y) != 0;
+      return (
+        getBoard(x, y) != EMPTY_TETROMINO && getBoard(x, y) != CURRENT_TETROMINO
+      );
     }
 
     function getBoard(x: number, y: number) {
@@ -593,11 +624,7 @@ export const TetrisGame = () => {
       if (isInvalid(x, y)) {
         throw Error(`Invalid position (${x},${y})`);
       }
-      if (
-        !ignoreOccupied &&
-        isOccupied(x, y) &&
-        getBoard(x, y) != currentPiece.piece
-      ) {
+      if (!ignoreOccupied && isOccupied(x, y)) {
         throw Error(`Already occupied (${x}, ${y})`);
       }
 
@@ -605,29 +632,29 @@ export const TetrisGame = () => {
     }
 
     function resetBoard() {
-      for (let i = 0; i < boardHeight + boardBufferHeight; i++) {
-        for (let j = 0; j < boardWidth; j++) {
-          setBoard(j, i, 0, true);
+      for (let i = 0; i < BOARD_HEIGHT + BOARD_BUFFER_HEIGHT; i++) {
+        for (let j = 0; j < BOARD_WIDTH; j++) {
+          setBoard(j, i, EMPTY_TETROMINO, true);
         }
       }
     }
 
     function clearLine(r: number) {
-      for (let i = 0; i < boardWidth; i++) {
-        setBoard(i, r, 0, true);
+      for (let i = 0; i < BOARD_WIDTH; i++) {
+        setBoard(i, r, EMPTY_TETROMINO, true);
       }
       for (let i = r; i > 0; i--) {
-        for (let j = 0; j < boardWidth; j++) {
+        for (let j = 0; j < BOARD_WIDTH; j++) {
           setBoard(j, i, getBoard(j, i - 1), true);
         }
       }
     }
 
     function clearLines() {
-      for (let i = 0; i < boardHeight + boardBufferHeight; i++) {
+      for (let i = 0; i < BOARD_HEIGHT + BOARD_BUFFER_HEIGHT; i++) {
         let isFull = true;
-        for (let j = 0; j < boardWidth; j++) {
-          if (getBoard(j, i) == 0) {
+        for (let j = 0; j < BOARD_WIDTH; j++) {
+          if (getBoard(j, i) == EMPTY_TETROMINO) {
             isFull = false;
             break;
           }
@@ -656,7 +683,7 @@ export const TetrisGame = () => {
       if (keyState.get("c") && !isSwapped) {
         timer = 10;
         resetCurrentPiece();
-        if (holdPiece == 0) {
+        if (holdPiece == EMPTY_TETROMINO) {
           holdPiece = currentPiece.piece;
           currentPiece = newPiece();
           piecesQueue.push(randomPiece());
@@ -699,7 +726,7 @@ export const TetrisGame = () => {
       }
 
       if (bottomTilesCollide(1)) {
-        if (currentPiece.position.y < boardBufferHeight) {
+        if (currentPiece.position.y < BOARD_BUFFER_HEIGHT) {
           resetBoard();
         }
 
@@ -708,9 +735,11 @@ export const TetrisGame = () => {
         }
 
         if (collisionTimer < 5) {
-          clearLines();
+          resetCurrentPiece();
+          setCurrentPiece(currentPiece.piece);
           currentPiece = newPiece();
           piecesQueue.push(randomPiece());
+          clearLines();
           setCurrentPiece();
           isSwapped = false;
         }
