@@ -245,22 +245,22 @@ export const TetrisGame = () => {
         }
       }
 
-      start() {
-        const gridBackground = this._gridBackground;
-        const grid = this._grid;
-        const canvas = this._canvas;
-        const ctx = this._context;
+      draw() {
+        this._context.fillStyle = "black";
+        this._context.fillRect(0, 0, this._canvas.width, this._canvas.height);
+        this._gridBackground.draw(this._context);
+        this._grid.draw(this._context, true);
+      }
 
-        function draw() {
-          ctx.fillStyle = "black";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          gridBackground.draw(ctx);
-          grid.draw(ctx, true);
-          requestAnimationFrame(draw);
+      update() {
+        const draw = () => this.draw();
+
+        function loop() {
+          draw();
+          requestAnimationFrame(loop);
         }
 
-        this.place();
-        draw();
+        loop();
 
         setInterval(() => {
           this.clear();
@@ -268,6 +268,11 @@ export const TetrisGame = () => {
           this._currentTetromino.index %= this._grid.size;
           this.place();
         }, 1000);
+      }
+
+      start() {
+        this.place();
+        this.update();
       }
     }
 
