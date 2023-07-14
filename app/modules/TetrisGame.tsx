@@ -8,7 +8,6 @@ export const TetrisGame = () => {
   useEffect(() => {
     const CANVAS: HTMLCanvasElement = document.querySelector("canvas")!;
 
-    const KEY_STATE = new Map();
     const GRID_WIDTH = 10;
     const GRID_HEIGHT = 20;
     const GRID_BUFFER_HEIGHT = 4;
@@ -39,16 +38,16 @@ export const TetrisGame = () => {
 
     const SQUARE_TILES = [
       false,
+      false,
+      false,
+      false,
+      false,
       true,
       true,
       false,
       false,
       true,
       true,
-      false,
-      false,
-      false,
-      false,
       false,
       false,
       false,
@@ -151,6 +150,14 @@ export const TetrisGame = () => {
       false,
     ];
 
+    function getPivot(value: GridValue) {
+      switch (value) {
+        case GridValue.STRAIGHT:
+          return 1;
+      }
+      return 5;
+    }
+
     interface GameParams {
       canvas: HTMLCanvasElement;
     }
@@ -161,10 +168,12 @@ export const TetrisGame = () => {
       private _grid: Grid;
       private _gridBackground: GridBackground;
       private _currentTetromino: Tetromino;
+      private _keyState: Map<string, boolean>;
 
       constructor({ canvas }: GameParams) {
         this._canvas = canvas;
         this._context = canvas.getContext("2d")!;
+        this._keyState = new Map();
 
         this._grid = new Grid({
           x: GRID_X,
@@ -211,36 +220,147 @@ export const TetrisGame = () => {
         }
 
         return new Tetromino({
-          position: 3,
+          index: 0,
+          rotation: 0,
           value: randomValue,
           tiles: randomTiles,
         });
       }
 
+      isCollidingLeftRotation() {
+        this.clear();
+        const numTiles = this._currentTetromino.tiles.length;
+
+        for (let i = 0; i < numTiles; i++) {
+          const row = Math.floor(i / TETROMINO_MAX_SIZE);
+          const index = row * this._grid.width + this._currentTetromino.index;
+          if (
+            this.rotateMatrix(
+              this._currentTetromino.tiles,
+              getPivot(this._currentTetromino.value)
+            )[i] &&
+            this._grid.getValue(index) != GridValue.EMPTY
+          ) {
+            this.place();
+            return true;
+          }
+        }
+
+        this.place();
+        return false;
+      }
+
+      isCollidingRightRotation() {
+        this.clear();
+        const numTiles = this._currentTetromino.tiles.length;
+        const rotated = this.rotateMatrix(
+          this._currentTetromino.tiles,
+          getPivot(this._currentTetromino.value)
+        );
+
+        for (let i = 0; i < numTiles; i++) {
+          const row = Math.floor(i / TETROMINO_MAX_SIZE);
+          const index = row * this._grid.width + this._currentTetromino.index;
+          if (rotated[i] && this._grid.getValue(index) != GridValue.EMPTY) {
+            this._context.fillText(`${index}`, 10, (i + 2) * 10);
+            this.place();
+            return true;
+          }
+        }
+
+        this.place();
+        return false;
+      }
+
+      isCollidingMoveDown() {
+        this.clear();
+        const numTiles = this._currentTetromino.tiles.length;
+
+        for (let i = 0; i < numTiles; i++) {
+          const row = Math.floor(i / TETROMINO_MAX_SIZE);
+          const index =
+            row * this._grid.width +
+            this._currentTetromino.index +
+            this._grid.width;
+          if (
+            this._currentTetromino.tiles[i] &&
+            this._grid.getValue(index) != GridValue.EMPTY
+          ) {
+            this.place();
+            return true;
+          }
+        }
+
+        this.place();
+        return false;
+      }
+
+      lRotate4x4(matrix: Array<boolean>): Array<boolean> {
+        const result: Array<boolean> = [];
+
+        for (let i = 3; i >= 0; i--) {
+          for (let j = 0; j < 4; j++) {
+            result.push(matrix[j * 4 + i]);
+          }
+        }
+
+        return result;
+      }
+
+      rRotate4x4(tiles: Array<boolean>) {
+        const result: boolean[] = [];
+
+        for (let i = 0; i < 4; i++) {
+          for (let j = 3; j >= 0; j--) {
+            result.push(tiles[j * 4 + i]);
+          }
+        }
+
+        return result;
+      }
+
+      rotateMatrix(matrix: boolean[], pivotIndex: number): boolean[] {
+        const size = Math.sqrt(matrix.length);
+        const pivotRow = Math.floor(pivotIndex / size);
+        const pivotCol = pivotIndex % size;
+        const newMatrix = new Array<boolean>(matrix.length);
+        for (let i = 0; i < matrix.length; i++) {
+          const row = Math.floor(i / size);
+          const col = i % size;
+          const newRow = pivotRow + (col - pivotCol);
+          const newCol = pivotCol - (row - pivotRow);
+          const newIndex = newRow * size + newCol;
+          newMatrix[newIndex] = matrix[i];
+        }
+        return newMatrix;
+      }
+
+      mapTileToGrid(i: number) {
+        const position = this._currentTetromino.index;
+        const row = this._grid.width * Math.floor(i / TETROMINO_MAX_SIZE);
+        const col = i % TETROMINO_MAX_SIZE;
+        return row + col + position;
+      }
+
       place() {
         const numTiles = this._currentTetromino.tiles.length;
-        const position = this._currentTetromino.index;
 
         for (let i = 0; i < numTiles; i++) {
           if (this._currentTetromino.tiles[i]) {
-            const row = this._grid.width * Math.floor(i / TETROMINO_MAX_SIZE);
-            const col = i % TETROMINO_MAX_SIZE;
-            const index = col + row + position;
-            this._grid.setValue(index, this._currentTetromino.value);
+            this._grid.setValue(
+              this.mapTileToGrid(i),
+              this._currentTetromino.value
+            );
           }
         }
       }
 
       clear() {
         const numTiles = this._currentTetromino.tiles.length;
-        const position = this._currentTetromino.index;
 
         for (let i = 0; i < numTiles; i++) {
           if (this._currentTetromino.tiles[i]) {
-            const row = this._grid.width * Math.floor(i / TETROMINO_MAX_SIZE);
-            const col = i % TETROMINO_MAX_SIZE;
-            const index = col + row + position;
-            this._grid.setValue(index, GridValue.EMPTY);
+            this._grid.setValue(this.mapTileToGrid(i), GridValue.EMPTY);
           }
         }
       }
@@ -250,28 +370,144 @@ export const TetrisGame = () => {
         this._context.fillRect(0, 0, this._canvas.width, this._canvas.height);
         this._gridBackground.draw(this._context);
         this._grid.draw(this._context, true);
+
+        this._context.beginPath();
+        this._context.fillStyle = "white";
+
+        let count = 1;
+        for (let i = 0; i < 16; i++) {
+          if (this._currentTetromino.tiles[i]) {
+            this._context.fillText(`i = ${i}`, 50, 50 + count * 25);
+            count++;
+          }
+        }
+        this._context.fillText(
+          `position = ${this._currentTetromino.index}`,
+          50,
+          50 + (count + 1) * 25
+        );
+        this._context.fillText(
+          `isCollidingMoveDown = ${this.isCollidingMoveDown()}`,
+          50,
+          50 + (count + 2) * 25
+        );
+
+        this._context.closePath();
+      }
+
+      setup() {
+        window.addEventListener("keydown", (e) => {
+          this._keyState.set(e.key, true);
+        });
+
+        window.addEventListener("keyup", (e) => {
+          this._keyState.set(e.key, false);
+        });
+
+        this.place();
+      }
+
+      moveDown() {
+        this.clear();
+        this._currentTetromino.index += this._grid.width;
+        this._currentTetromino.index %= this._grid.size;
+        this.place();
+      }
+
+      autoMoveDown(tick: number, limit: number) {
+        if (tick == 0 && !this.isCollidingMoveDown()) {
+          this.moveDown();
+          return limit;
+        }
+        return tick;
+      }
+
+      rotateLeft() {
+        this.clear();
+        if (this._currentTetromino.value == GridValue.STRAIGHT) {
+          this._currentTetromino.tiles = this.rRotate4x4(
+            this._currentTetromino.tiles
+          );
+        } else if (this._currentTetromino.value != GridValue.SQUARE) {
+          this._currentTetromino.tiles = this.rotateMatrix(
+            this._currentTetromino.tiles,
+            getPivot(this._currentTetromino.value)
+          );
+        }
+        this.place();
+      }
+
+      rotateRight() {
+        this.clear();
+        if (this._currentTetromino.value == GridValue.STRAIGHT) {
+          this._currentTetromino.tiles = this.rRotate4x4(
+            this._currentTetromino.tiles
+          );
+        } else if (this._currentTetromino.value != GridValue.SQUARE) {
+          this._currentTetromino.tiles = this.rotateMatrix(
+            this._currentTetromino.tiles,
+            getPivot(this._currentTetromino.value)
+          );
+        }
+        this.place();
+      }
+
+      handleInput(tick: number, limit: number) {
+        if (tick == 0) {
+          if (this._keyState.get("z") && !this.isCollidingLeftRotation()) {
+            this.rotateLeft();
+            return limit * 5;
+          }
+          if (
+            this._keyState.get("ArrowUp") &&
+            !this.isCollidingRightRotation()
+          ) {
+            this.rotateRight();
+            return limit * 5;
+          }
+          if (this._keyState.get("ArrowDown") && !this.isCollidingMoveDown()) {
+            this.moveDown();
+            return limit;
+          }
+          // if (this.isCollidingMoveDown()) {
+          //   alert("colliding move down");
+          // }
+        }
+        return tick;
       }
 
       update() {
+        let inputTick = 0;
+        let moveDownTick = 0;
+
         const draw = () => this.draw();
+        const handleInput = () => {
+          inputTick = this.handleInput(inputTick, 5);
+        };
+        const autoMoveDown = () => {
+          moveDownTick = this.autoMoveDown(moveDownTick, 50);
+        };
 
         function loop() {
+          if (inputTick > 0) {
+            inputTick--;
+          }
+
+          if (moveDownTick > 0) {
+            moveDownTick--;
+          }
+
+          handleInput();
           draw();
+          autoMoveDown();
           requestAnimationFrame(loop);
         }
 
         loop();
-
-        setInterval(() => {
-          this.clear();
-          this._currentTetromino.index += this._grid.width;
-          this._currentTetromino.index %= this._grid.size;
-          this.place();
-        }, 1000);
       }
 
       start() {
-        this.place();
+        this.setup();
         this.update();
       }
     }
@@ -437,7 +673,8 @@ export const TetrisGame = () => {
     }
 
     interface TetrominoParams {
-      position: number;
+      index: number;
+      rotation: number;
       value: GridValue;
       tiles: Array<boolean>;
     }
@@ -463,8 +700,12 @@ export const TetrisGame = () => {
         this._index = index;
       }
 
-      constructor({ position, value, tiles }: TetrominoParams) {
-        this._index = position;
+      public set tiles(tiles: Array<boolean>) {
+        this._tiles = tiles;
+      }
+
+      constructor({ index, rotation, value, tiles }: TetrominoParams) {
+        this._index = index;
         this._value = value;
         this._tiles = tiles;
       }
