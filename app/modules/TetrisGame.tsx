@@ -499,7 +499,7 @@ export const TetrisGame = () => {
       }
 
       autoMoveDown(tick: number, limit: number) {
-        if (tick == 0 && !this.isCollidingMoveDown()) {
+        if (tick <= 0 && !this.isCollidingMoveDown()) {
           this.moveDown();
           return limit;
         } else if (this.isCollidingMoveDown()) {
@@ -539,23 +539,23 @@ export const TetrisGame = () => {
       }
 
       handleInput(tick: number, limit: number) {
-        if (tick == 0) {
+        if (tick <= 0) {
           if (this._keyState.get("z") && !this.isCollidingLeftRotation()) {
             this.rotateLeft();
-            return limit * 5;
+            return limit * 2.5;
           }
           if (
             this._keyState.get("ArrowUp") &&
             !this.isCollidingRightRotation()
           ) {
             this.rotateRight();
-            return limit * 5;
+            return limit * 2.5;
           }
           if (this._keyState.get(" ")) {
             while (!this.isCollidingMoveDown()) {
               this.moveDown();
             }
-            return limit;
+            return limit * 2.5;
           }
           if (this._keyState.get("ArrowDown") && !this.isCollidingMoveDown()) {
             this.moveDown();
