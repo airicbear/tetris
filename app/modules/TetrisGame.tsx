@@ -551,6 +551,12 @@ export const TetrisGame = () => {
             this.rotateRight();
             return limit * 5;
           }
+          if (this._keyState.get(" ")) {
+            while (!this.isCollidingMoveDown()) {
+              this.moveDown();
+            }
+            return limit;
+          }
           if (this._keyState.get("ArrowDown") && !this.isCollidingMoveDown()) {
             this.moveDown();
             return limit;
