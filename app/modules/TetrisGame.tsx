@@ -420,47 +420,50 @@ export const TetrisGame = () => {
         }
       }
 
-      draw() {
+      draw(showValues: boolean = false) {
         this._context.fillStyle = "black";
         this._context.fillRect(0, 0, this._canvas.width, this._canvas.height);
         this._gridBackground.draw(this._context);
-        this._grid.draw(this._context, true);
+        this._grid.draw(this._context);
 
         this._context.beginPath();
         this._context.fillStyle = "white";
 
-        let count = 1;
-        for (let i = 0; i < 16; i++) {
-          if (this._currentTetromino.tiles[i]) {
-            this._context.fillText(`i = ${i}`, 50, 50 + count * 25);
-            count++;
+        if (showValues) {
+          let count = 1;
+          for (let i = 0; i < 16; i++) {
+            if (this._currentTetromino.tiles[i]) {
+              this._context.fillText(`i = ${i}`, 50, 50 + count * 25);
+              count++;
+            }
           }
+
+          this._context.fillText(
+            `position = ${this._currentTetromino.index}`,
+            10,
+            50 + (count + 1) * 25
+          );
+          this._context.fillText(
+            `isCollidingMoveDown = ${this.isCollidingMoveDown()}`,
+            10,
+            50 + (count + 2) * 25
+          );
+          this._context.fillText(
+            `isCollidingMoveLeft = ${this.isCollidingMoveLeft()}`,
+            10,
+            50 + (count + 3) * 25
+          );
+          this._context.fillText(
+            `isCollidingMoveRight = ${this.isCollidingMoveRight()}`,
+            10,
+            50 + (count + 4) * 25
+          );
+          this._context.fillText(
+            `isCollidingRightRotation = ${this.isCollidingRightRotation()}`,
+            10,
+            50 + (count + 5) * 25
+          );
         }
-        this._context.fillText(
-          `position = ${this._currentTetromino.index}`,
-          10,
-          50 + (count + 1) * 25
-        );
-        this._context.fillText(
-          `isCollidingMoveDown = ${this.isCollidingMoveDown()}`,
-          10,
-          50 + (count + 2) * 25
-        );
-        this._context.fillText(
-          `isCollidingMoveLeft = ${this.isCollidingMoveLeft()}`,
-          10,
-          50 + (count + 3) * 25
-        );
-        this._context.fillText(
-          `isCollidingMoveRight = ${this.isCollidingMoveRight()}`,
-          10,
-          50 + (count + 4) * 25
-        );
-        this._context.fillText(
-          `isCollidingRightRotation = ${this.isCollidingRightRotation()}`,
-          10,
-          50 + (count + 5) * 25
-        );
 
         this._context.closePath();
       }
@@ -503,6 +506,10 @@ export const TetrisGame = () => {
           this.moveDown();
           return limit;
         } else if (this.isCollidingMoveDown()) {
+          if (this._currentTetromino.index < this._grid.totalHeight) {
+            this.reset();
+          }
+
           this._currentTetromino = this.randomTetromino();
         }
         return tick;
@@ -608,6 +615,12 @@ export const TetrisGame = () => {
             this.clearLine(row);
             linesCleared++;
           }
+        }
+      }
+
+      reset() {
+        for (let i = 0; i < this._grid.totalHeight; i++) {
+          this.clearLine(i);
         }
       }
 
@@ -721,6 +734,10 @@ export const TetrisGame = () => {
 
       public get width(): number {
         return this._width;
+      }
+
+      public get bufferHeight(): number {
+        return this._bufferHeight;
       }
 
       public get totalHeight(): number {
