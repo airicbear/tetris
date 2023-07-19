@@ -576,6 +576,41 @@ export const TetrisGame = () => {
         return tick;
       }
 
+      clearLine(row: number) {
+        for (let i = 0; i < this._grid.width; i++) {
+          this._grid.setValue(row * this._grid.width + i, GridValue.EMPTY);
+        }
+        for (let i = row; i > 0; i--) {
+          for (let j = 0; j < this._grid.width; j++) {
+            const previousRowValue = this._grid.getValue(
+              (i - 1) * this._grid.width + j
+            );
+            this._grid.setValue(i * this._grid.width + j, previousRowValue);
+          }
+        }
+      }
+
+      isFullRow(row: number) {
+        for (let i = 0; i < this._grid.width; i++) {
+          if (
+            this._grid.getValue(row * this._grid.width + i) == GridValue.EMPTY
+          ) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      clearLines() {
+        let linesCleared = 0;
+        for (let row = 0; row < this._grid.totalHeight; row++) {
+          if (this.isFullRow(row)) {
+            this.clearLine(row);
+            linesCleared++;
+          }
+        }
+      }
+
       update() {
         let inputTick = 0;
         let moveDownTick = 0;
@@ -587,6 +622,7 @@ export const TetrisGame = () => {
         const autoMoveDown = () => {
           moveDownTick = this.autoMoveDown(moveDownTick, 50);
         };
+        const clearLines = () => this.clearLines();
 
         function loop() {
           if (inputTick > 0) {
@@ -600,6 +636,7 @@ export const TetrisGame = () => {
           handleInput();
           draw();
           autoMoveDown();
+          clearLines();
           requestAnimationFrame(loop);
         }
 
