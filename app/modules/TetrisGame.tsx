@@ -6,885 +6,975 @@ import { useEffect } from "react";
 
 export const TetrisGame = () => {
   useEffect(() => {
-    const canvas: HTMLCanvasElement = document.querySelector("canvas")!;
-    const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
+    const CANVAS: HTMLCanvasElement = document.querySelector("canvas")!;
 
-    const keyState = new Map();
-    const EMPTY_TETROMINO = -1;
-    const CURRENT_TETROMINO = 0;
-    const WHILE_LOOP_MAX = 999;
-    let whileLoopCounter = 0;
-    let holdPiece = EMPTY_TETROMINO;
-    let isSwapped = false;
-    const QUEUE_SIZE = 5;
-    const piecesQueue: number[] = [];
-    for (let i = 0; i <= QUEUE_SIZE; i++) {
-      piecesQueue.push(randomPiece());
-    }
-
-    const BOARD_WIDTH = 10;
-    const BOARD_HEIGHT = 20;
-    const BOARD_BUFFER_HEIGHT = 4;
+    const GRID_WIDTH = 10;
+    const GRID_HEIGHT = 20;
+    const GRID_BUFFER_HEIGHT = 4;
+    const TETROMINO_MAX_SIZE = 4;
     const TILE_SIZE = 25;
-    const BOARD_PADDING = {
-      left: canvas.width / 2 - (TILE_SIZE * BOARD_WIDTH) / 2,
-      top: canvas.height / 10,
-    };
+    const GRID_X = CANVAS.width / 2 - (TILE_SIZE * GRID_WIDTH) / 2;
+    const GRID_Y = 0;
+    const GRID_BACKGROUND_COLOR = "gray";
 
-    const PIECES: any = {
-      1: {
-        color: "aqua",
-        bounds: {
-          0: { xMin: 0, xMax: 3, yMin: 1, yMax: 1 },
-          1: { xMin: 2, xMax: 2, yMin: 1, yMax: 4 },
-          2: { xMin: 0, xMax: 3, yMin: 1, yMax: 1 },
-          3: { xMin: 1, xMax: 1, yMin: 1, yMax: 4 },
-        },
-        patterns: {
-          0: [
-            { x: 0, y: 1 },
-            { x: 1, y: 1 },
-            { x: 2, y: 1 },
-            { x: 3, y: 1 },
-          ],
-          1: [
-            { x: 2, y: 1 },
-            { x: 2, y: 2 },
-            { x: 2, y: 3 },
-            { x: 2, y: 4 },
-          ],
-          2: [
-            { x: 0, y: 1 },
-            { x: 1, y: 1 },
-            { x: 2, y: 1 },
-            { x: 3, y: 1 },
-          ],
-          3: [
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-            { x: 1, y: 3 },
-            { x: 1, y: 4 },
-          ],
-        },
-      },
-      2: {
-        color: "blue",
-        bounds: {
-          0: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
-          1: { xMin: 1, xMax: 2, yMin: 1, yMax: 3 },
-          2: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
-          3: { xMin: 1, xMax: 2, yMin: 1, yMax: 3 },
-        },
-        patterns: {
-          0: [
-            { x: 0, y: 1 },
-            { x: 0, y: 2 },
-            { x: 1, y: 2 },
-            { x: 2, y: 2 },
-          ],
-          1: [
-            { x: 1, y: 1 },
-            { x: 2, y: 1 },
-            { x: 1, y: 2 },
-            { x: 1, y: 3 },
-          ],
-          2: [
-            { x: 0, y: 1 },
-            { x: 1, y: 1 },
-            { x: 2, y: 1 },
-            { x: 2, y: 2 },
-          ],
-          3: [
-            { x: 2, y: 3 },
-            { x: 1, y: 3 },
-            { x: 2, y: 2 },
-            { x: 2, y: 1 },
-          ],
-        },
-      },
-      3: {
-        color: "orange",
-        bounds: {
-          0: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
-          1: { xMin: 1, xMax: 2, yMin: 0, yMax: 2 },
-          2: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
-          3: { xMin: 0, xMax: 1, yMin: 0, yMax: 2 },
-        },
-        patterns: {
-          0: [
-            { x: 2, y: 1 },
-            { x: 2, y: 2 },
-            { x: 1, y: 2 },
-            { x: 0, y: 2 },
-          ],
-          1: [
-            { x: 1, y: 0 },
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-            { x: 2, y: 2 },
-          ],
-          2: [
-            { x: 0, y: 2 },
-            { x: 0, y: 1 },
-            { x: 1, y: 1 },
-            { x: 2, y: 1 },
-          ],
-          3: [
-            { x: 0, y: 0 },
-            { x: 1, y: 0 },
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-          ],
-        },
-      },
-      4: {
-        color: "yellow",
-        bounds: {
-          0: { xMin: 1, xMax: 2, yMin: 1, yMax: 2 },
-          1: { xMin: 1, xMax: 2, yMin: 1, yMax: 2 },
-          2: { xMin: 1, xMax: 2, yMin: 1, yMax: 2 },
-          3: { xMin: 1, xMax: 2, yMin: 1, yMax: 2 },
-        },
-        patterns: {
-          0: [
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-            { x: 2, y: 1 },
-            { x: 2, y: 2 },
-          ],
-          1: [
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-            { x: 2, y: 1 },
-            { x: 2, y: 2 },
-          ],
-          2: [
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-            { x: 2, y: 1 },
-            { x: 2, y: 2 },
-          ],
-          3: [
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-            { x: 2, y: 1 },
-            { x: 2, y: 2 },
-          ],
-        },
-      },
-      5: {
-        color: "green",
-        bounds: {
-          0: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
-          1: { xMin: 1, xMax: 2, yMin: 0, yMax: 2 },
-          2: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
-          3: { xMin: 0, xMax: 1, yMin: 0, yMax: 2 },
-        },
-        patterns: {
-          0: [
-            { x: 1, y: 1 },
-            { x: 2, y: 1 },
-            { x: 0, y: 2 },
-            { x: 1, y: 2 },
-          ],
-          1: [
-            { x: 1, y: 0 },
-            { x: 1, y: 1 },
-            { x: 2, y: 1 },
-            { x: 2, y: 2 },
-          ],
-          2: [
-            { x: 1, y: 1 },
-            { x: 2, y: 1 },
-            { x: 0, y: 2 },
-            { x: 1, y: 2 },
-          ],
-          3: [
-            { x: 0, y: 0 },
-            { x: 0, y: 1 },
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-          ],
-        },
-      },
-      6: {
-        color: "purple",
-        bounds: {
-          0: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
-          1: { xMin: 1, xMax: 2, yMin: 1, yMax: 3 },
-          2: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
-          3: { xMin: 0, xMax: 1, yMin: 1, yMax: 3 },
-        },
-        patterns: {
-          0: [
-            { x: 0, y: 2 },
-            { x: 1, y: 2 },
-            { x: 2, y: 2 },
-            { x: 1, y: 1 },
-          ],
-          1: [
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-            { x: 2, y: 2 },
-            { x: 1, y: 3 },
-          ],
-          2: [
-            { x: 0, y: 1 },
-            { x: 1, y: 1 },
-            { x: 2, y: 1 },
-            { x: 1, y: 2 },
-          ],
-          3: [
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-            { x: 0, y: 2 },
-            { x: 1, y: 3 },
-          ],
-        },
-      },
-      7: {
-        color: "red",
-        bounds: {
-          0: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
-          1: { xMin: 1, xMax: 2, yMin: 0, yMax: 2 },
-          2: { xMin: 0, xMax: 2, yMin: 1, yMax: 2 },
-          3: { xMin: 0, xMax: 1, yMin: 0, yMax: 2 },
-        },
-        patterns: {
-          0: [
-            { x: 0, y: 1 },
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-            { x: 2, y: 2 },
-          ],
-          1: [
-            { x: 2, y: 0 },
-            { x: 1, y: 1 },
-            { x: 2, y: 1 },
-            { x: 1, y: 2 },
-          ],
-          2: [
-            { x: 0, y: 1 },
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-            { x: 2, y: 2 },
-          ],
-          3: [
-            { x: 1, y: 0 },
-            { x: 0, y: 1 },
-            { x: 1, y: 1 },
-            { x: 0, y: 2 },
-          ],
-        },
-      },
-    };
+    const STRAIGHT_TILES = [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ];
 
-    function getBottomTiles(pattern: Array<{ x: number; y: number }>) {
-      let tileMap: Map<Number, { x: number; y: number }> = new Map();
-      for (let i = 0; i < pattern.length; i++) {
-        const tile = pattern[i];
-        if (!tileMap.get(tile.x)) {
-          tileMap.set(tile.x, tile);
-        } else if (tile.y > tileMap.get(tile.x)!.y) {
-          tileMap.set(tile.x, tile);
-        }
+    const SQUARE_TILES = [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ];
+
+    const T_TILES = [
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ];
+
+    const L_TILES = [
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ];
+
+    const J_TILES = [
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ];
+
+    const S_TILES = [
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ];
+
+    const Z_TILES = [
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ];
+
+    const ROTATION_PIVOT = 5;
+
+    interface GameParams {
+      canvas: HTMLCanvasElement;
+    }
+
+    class Game {
+      private _canvas: HTMLCanvasElement;
+      private _context: CanvasRenderingContext2D;
+      private _grid: Grid;
+      private _gridBackground: GridBackground;
+      private _currentTetromino: Tetromino;
+      private _keyState: Map<string, boolean>;
+      private _queue: TetrominoQueue;
+      private _hold: Tetromino | undefined;
+      private _swapped: boolean;
+
+      constructor({ canvas }: GameParams) {
+        this._canvas = canvas;
+        this._context = canvas.getContext("2d")!;
+        this._keyState = new Map();
+        this._swapped = false;
+
+        this._grid = new Grid({
+          x: GRID_X,
+          y: GRID_Y,
+          width: GRID_WIDTH,
+          height: GRID_HEIGHT,
+          bufferHeight: GRID_BUFFER_HEIGHT,
+          tileSize: TILE_SIZE,
+        });
+
+        this._gridBackground = new GridBackground({
+          grid: this._grid,
+          color: GRID_BACKGROUND_COLOR,
+        });
+
+        this._queue = new TetrominoQueue(5);
+        this._currentTetromino = this._queue.next!;
       }
-      return Array.from(tileMap.values());
-    }
 
-    function getLeftTiles(pattern: Array<{ x: number; y: number }>) {
-      let tileMap: Map<Number, { x: number; y: number }> = new Map();
-      for (let i = 0; i < pattern.length; i++) {
-        const tile = pattern[i];
-        if (!tileMap.get(tile.y)) {
-          tileMap.set(tile.y, tile);
-        } else if (tile.x < tileMap.get(tile.y)!.x) {
-          tileMap.set(tile.y, tile);
-        }
-      }
-      return Array.from(tileMap.values());
-    }
-
-    function getRightTiles(pattern: Array<{ x: number; y: number }>) {
-      let tileMap: Map<Number, { x: number; y: number }> = new Map();
-      for (let i = 0; i < pattern.length; i++) {
-        const tile = pattern[i];
-        if (!tileMap.get(tile.y)) {
-          tileMap.set(tile.y, tile);
-        } else if (tile.x > tileMap.get(tile.y)!.x) {
-          tileMap.set(tile.y, tile);
-        }
-      }
-      return Array.from(tileMap.values());
-    }
-
-    function randomPiece() {
-      return Math.floor(Math.random() * 7) + 1;
-    }
-
-    function newPiece(): {
-      position: { x: number; y: number };
-      piece: number;
-      rotation: number;
-    } {
-      return {
-        position: { x: ((BOARD_WIDTH - 4) / 2) | 0, y: 0 },
-        piece: piecesQueue.shift() ?? randomPiece(),
-        rotation: 0,
-      };
-    }
-
-    let currentPiece: {
-      position: { x: number; y: number };
-      piece: number;
-      rotation: number;
-    } = newPiece();
-
-    const board: Array<Array<number>> = [];
-    for (let i = 0; i < BOARD_HEIGHT + BOARD_BUFFER_HEIGHT; i++) {
-      board.push(Array(BOARD_WIDTH).fill(EMPTY_TETROMINO));
-    }
-    let backgroundColor = "black";
-    let tileFillColor = "black";
-    let tileStrokeColor = "#555555";
-
-    function draw() {
-      // Background
-      ctx.beginPath();
-      ctx.rect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = backgroundColor;
-      ctx.fill();
-      ctx.closePath();
-
-      // Hold
-      if (holdPiece != EMPTY_TETROMINO) {
-        const pattern = getPattern(holdPiece, 0);
-        for (let i = 0; i < pattern.length; i++) {
-          const tile = pattern[i];
-          const x = tile.x * TILE_SIZE + BOARD_PADDING.left * 0.25;
-          const y = (4 + tile.y) * TILE_SIZE + BOARD_PADDING.top;
-          ctx.beginPath();
-          ctx.rect(x, y, TILE_SIZE, TILE_SIZE);
-          ctx.fillStyle = PIECES[holdPiece].color;
-          ctx.strokeStyle = PIECES[holdPiece].color;
-          ctx.lineWidth = 1.3;
-          ctx.fill();
-          ctx.stroke();
-          ctx.closePath();
+      getEmptyIndex(value: GridValue) {
+        switch (value) {
+          case GridValue.S:
+          case GridValue.Z:
+            return 0;
+          case GridValue.SQUARE:
+          case GridValue.T:
+          case GridValue.J:
+          case GridValue.L:
+            return 0;
+          default:
+            return 0;
         }
       }
 
-      // Queue
-      for (let i = piecesQueue.length - 1; i >= 0; i--) {
-        const pattern = getPattern(piecesQueue[i], 0);
-        for (let j = 0; j < pattern.length; j++) {
-          const tile = pattern[j];
-          const x =
-            (BOARD_WIDTH + tile.x) * TILE_SIZE + BOARD_PADDING.left * 1.25;
-          const y = (4 * i + tile.y) * TILE_SIZE + BOARD_PADDING.top;
-          ctx.beginPath();
-          ctx.rect(x, y, TILE_SIZE, TILE_SIZE);
-          ctx.fillStyle = PIECES[piecesQueue[i]].color;
-          ctx.strokeStyle = PIECES[piecesQueue[i]].color;
-          ctx.lineWidth = 1.3;
-          ctx.fill();
-          ctx.stroke();
-          ctx.closePath();
-        }
-      }
+      isCollidingLeftRotation() {
+        this.clear();
+        const numTiles = this._currentTetromino.tiles.length;
+        let rotated;
 
-      // Grid
-      for (let i = 0; i < BOARD_HEIGHT + BOARD_BUFFER_HEIGHT; i++) {
-        for (let j = 0; j < BOARD_WIDTH; j++) {
-          ctx.beginPath();
-          ctx.rect(
-            j * TILE_SIZE + BOARD_PADDING.left,
-            i * TILE_SIZE,
-            TILE_SIZE,
-            TILE_SIZE
+        if (this._currentTetromino.value == GridValue.STRAIGHT) {
+          rotated = this.lRotate4x4(this._currentTetromino.tiles);
+        } else {
+          rotated = this.rotateMatrix(
+            this._currentTetromino.tiles,
+            ROTATION_PIVOT
           );
-          if (getBoard(j, i) == EMPTY_TETROMINO) {
-            if (i < BOARD_BUFFER_HEIGHT) {
-              ctx.fillStyle = "black";
-              ctx.strokeStyle = "black";
+        }
+
+        for (let i = 0; i < numTiles; i++) {
+          const index = this.mapTileToGrid(i);
+          const occupied = this._grid.getValue(index) != GridValue.EMPTY;
+          if (rotated[i] && occupied) {
+            this.place();
+            return true;
+          }
+        }
+
+        this.place();
+        return false;
+      }
+
+      isCollidingRightRotation() {
+        this.clear();
+        const numTiles = this._currentTetromino.tiles.length;
+        let rotated;
+
+        if (this._currentTetromino.value == GridValue.STRAIGHT) {
+          rotated = this.lRotate4x4(this._currentTetromino.tiles);
+        } else {
+          rotated = this.rotateMatrix(
+            this._currentTetromino.tiles,
+            ROTATION_PIVOT
+          );
+        }
+
+        for (let i = 0; i < numTiles; i++) {
+          const index = this.mapTileToGrid(i);
+          const outOfBounds =
+            this._currentTetromino.index % this._grid.width >
+              this._grid.width - TETROMINO_MAX_SIZE ||
+            this._currentTetromino.index < 0;
+          const occupied = this._grid.getValue(index) != GridValue.EMPTY;
+          if (rotated[i] && (outOfBounds || occupied)) {
+            this._context.fillText(`${index}`, 10, (i + 2) * 10);
+            this.place();
+            return true;
+          }
+        }
+
+        this.place();
+        return false;
+      }
+
+      isCollidingMoveDown() {
+        this.clear();
+        const numTiles = this._currentTetromino.tiles.length;
+
+        for (let i = 0; i < numTiles; i++) {
+          const index = this.mapTileToGrid(i);
+          const occupied =
+            this._grid.getValue(index + this._grid.width) != GridValue.EMPTY;
+          if (this._currentTetromino.tiles[i] && occupied) {
+            this.place();
+            return true;
+          }
+        }
+
+        this.place();
+        return false;
+      }
+
+      isCollidingMoveLeft() {
+        this.clear();
+        const numTiles = this._currentTetromino.tiles.length;
+
+        for (let i = 0; i < numTiles; i++) {
+          const index = this.mapTileToGrid(i);
+          const outOfBounds = (index % this._grid.width) - 1 < 0;
+          const occupied = this._grid.getValue(index - 1) != GridValue.EMPTY;
+          if (this._currentTetromino.tiles[i] && (outOfBounds || occupied)) {
+            this.place();
+            return true;
+          }
+        }
+
+        this.place();
+        return false;
+      }
+
+      isCollidingMoveRight() {
+        this.clear();
+        const numTiles = this._currentTetromino.tiles.length;
+
+        for (let i = 0; i < numTiles; i++) {
+          const index = this.mapTileToGrid(i);
+          const outOfBounds =
+            (index % this._grid.width) + 1 >= this._grid.width;
+          const occupied = this._grid.getValue(index + 1) != GridValue.EMPTY;
+          if (this._currentTetromino.tiles[i] && (outOfBounds || occupied)) {
+            this.place();
+            return true;
+          }
+        }
+
+        this.place();
+        return false;
+      }
+
+      lRotate4x4(matrix: Array<boolean>): Array<boolean> {
+        const result: Array<boolean> = [];
+
+        for (let i = 3; i >= 0; i--) {
+          for (let j = 0; j < 4; j++) {
+            result.push(matrix[j * 4 + i]);
+          }
+        }
+
+        return result;
+      }
+
+      rRotate4x4(tiles: Array<boolean>) {
+        const result: boolean[] = [];
+
+        for (let i = 0; i < 4; i++) {
+          for (let j = 3; j >= 0; j--) {
+            result.push(tiles[j * 4 + i]);
+          }
+        }
+
+        return result;
+      }
+
+      rotateMatrix(matrix: boolean[], pivotIndex: number): boolean[] {
+        const size = Math.sqrt(matrix.length);
+        const pivotRow = Math.floor(pivotIndex / size);
+        const pivotCol = pivotIndex % size;
+        const newMatrix = new Array<boolean>(matrix.length);
+        for (let i = 0; i < matrix.length; i++) {
+          const row = Math.floor(i / size);
+          const col = i % size;
+          const newRow = pivotRow + (col - pivotCol);
+          const newCol = pivotCol - (row - pivotRow);
+          const newIndex = newRow * size + newCol;
+          newMatrix[newIndex] = matrix[i];
+        }
+        return newMatrix;
+      }
+
+      mapTileToGrid(i: number) {
+        const position = this._currentTetromino.index;
+        const row = this._grid.width * Math.floor(i / TETROMINO_MAX_SIZE);
+        const col = i % TETROMINO_MAX_SIZE;
+        return row + col + position;
+      }
+
+      place() {
+        const numTiles = this._currentTetromino.tiles.length;
+
+        for (let i = 0; i < numTiles; i++) {
+          if (this._currentTetromino.tiles[i]) {
+            this._grid.setValue(
+              this.mapTileToGrid(i),
+              this._currentTetromino.value
+            );
+          }
+        }
+      }
+
+      clear() {
+        const numTiles = this._currentTetromino.tiles.length;
+
+        for (let i = 0; i < numTiles; i++) {
+          if (this._currentTetromino.tiles[i]) {
+            this._grid.setValue(this.mapTileToGrid(i), GridValue.EMPTY);
+          }
+        }
+      }
+
+      drawValues() {
+        this._context.beginPath();
+        this._context.fillStyle = "white";
+
+        let count = 1;
+        for (let i = 0; i < 16; i++) {
+          if (this._currentTetromino.tiles[i]) {
+            this._context.fillText(`i = ${i}`, 50, 50 + count * 25);
+            count++;
+          }
+        }
+
+        this._context.fillText(
+          `position = ${this._currentTetromino.index}`,
+          10,
+          50 + (count + 1) * 25
+        );
+        this._context.fillText(
+          `isCollidingMoveDown = ${this.isCollidingMoveDown()}`,
+          10,
+          50 + (count + 2) * 25
+        );
+        this._context.fillText(
+          `isCollidingMoveLeft = ${this.isCollidingMoveLeft()}`,
+          10,
+          50 + (count + 3) * 25
+        );
+        this._context.fillText(
+          `isCollidingMoveRight = ${this.isCollidingMoveRight()}`,
+          10,
+          50 + (count + 4) * 25
+        );
+        this._context.fillText(
+          `isCollidingRightRotation = ${this.isCollidingRightRotation()}`,
+          10,
+          50 + (count + 5) * 25
+        );
+
+        this._context.closePath();
+      }
+
+      draw(showValues: boolean = false) {
+        this._context.fillStyle = "black";
+        this._context.fillRect(0, 0, this._canvas.width, this._canvas.height);
+        this._gridBackground.draw(this._context);
+        this._grid.draw(this._context);
+        this._queue.draw(
+          this._context,
+          this._grid.x +
+            this._grid.width * this._grid.tileSize +
+            this._grid.tileSize,
+          this._grid.tileSize,
+          this._grid.tileSize,
+          TETROMINO_MAX_SIZE
+        );
+
+        if (this._hold) {
+          this._hold.draw(
+            this._context,
+            this._grid.x -
+              this._grid.tileSize * TETROMINO_MAX_SIZE -
+              this._grid.tileSize,
+            this._grid.tileSize,
+            this._grid.tileSize,
+            TETROMINO_MAX_SIZE
+          );
+        }
+
+        if (showValues) {
+          this.drawValues();
+        }
+      }
+
+      setup() {
+        window.addEventListener("keydown", (e) => {
+          this._keyState.set(e.key, true);
+        });
+
+        window.addEventListener("keyup", (e) => {
+          this._keyState.set(e.key, false);
+        });
+
+        this.place();
+      }
+
+      moveDown() {
+        this.clear();
+        this._currentTetromino.index += this._grid.width;
+        this._currentTetromino.index %= this._grid.size;
+        this.place();
+      }
+
+      moveLeft() {
+        this.clear();
+        this._currentTetromino.index--;
+        this._currentTetromino.index %= this._grid.size;
+        this.place();
+      }
+
+      moveRight() {
+        this.clear();
+        this._currentTetromino.index++;
+        this._currentTetromino.index %= this._grid.size;
+        this.place();
+      }
+
+      autoMoveDown(tick: number, limit: number) {
+        if (tick <= 0 && !this.isCollidingMoveDown()) {
+          this.moveDown();
+          return limit;
+        } else if (this.isCollidingMoveDown()) {
+          this.clearLines();
+          if (this._currentTetromino.index < this._grid.totalHeight) {
+            this.reset();
+          }
+
+          this._currentTetromino = this._queue.next!;
+          this._swapped = false;
+        }
+        return tick;
+      }
+
+      rotateLeft() {
+        this.clear();
+        if (this._currentTetromino.value == GridValue.STRAIGHT) {
+          this._currentTetromino.tiles = this.rRotate4x4(
+            this._currentTetromino.tiles
+          );
+        } else if (this._currentTetromino.value != GridValue.SQUARE) {
+          this._currentTetromino.tiles = this.rotateMatrix(
+            this._currentTetromino.tiles,
+            ROTATION_PIVOT
+          );
+        }
+        this.place();
+      }
+
+      rotateRight() {
+        this.clear();
+        if (this._currentTetromino.value == GridValue.STRAIGHT) {
+          this._currentTetromino.tiles = this.rRotate4x4(
+            this._currentTetromino.tiles
+          );
+        } else if (this._currentTetromino.value != GridValue.SQUARE) {
+          this._currentTetromino.tiles = this.rotateMatrix(
+            this._currentTetromino.tiles,
+            ROTATION_PIVOT
+          );
+        }
+        this.place();
+      }
+
+      handleInput(tick: number, limit: number) {
+        if (tick <= 0) {
+          if (this._keyState.get("z") && !this.isCollidingLeftRotation()) {
+            this.rotateLeft();
+            return limit * 2.5;
+          }
+          if (this._keyState.get("c") && !this._swapped) {
+            this._swapped = true;
+
+            this.clear();
+            if (this._hold == undefined) {
+              this._hold = this._currentTetromino;
+              this._currentTetromino = this._queue.next!;
             } else {
-              ctx.fillStyle = tileFillColor;
-              ctx.strokeStyle = tileStrokeColor;
+              const temp = this._currentTetromino;
+              this._currentTetromino = this._hold;
+              this._hold = temp;
             }
-            ctx.stroke();
-          } else if (getBoard(j, i) == CURRENT_TETROMINO) {
-            ctx.fillStyle = PIECES[currentPiece.piece].color;
-          } else {
-            ctx.fillStyle = PIECES[board[i][j]].color;
+            this._currentTetromino.index = 0;
+            this.place();
           }
-          ctx.fill();
-          ctx.closePath();
+          if (
+            this._keyState.get("ArrowUp") &&
+            !this.isCollidingRightRotation()
+          ) {
+            this.rotateRight();
+            return limit * 2.5;
+          }
+          if (this._keyState.get(" ")) {
+            while (!this.isCollidingMoveDown()) {
+              this.moveDown();
+            }
+            return limit * 2.5;
+          }
+          if (this._keyState.get("ArrowDown") && !this.isCollidingMoveDown()) {
+            this.moveDown();
+            return limit;
+          }
+          if (this._keyState.get("ArrowLeft") && !this.isCollidingMoveLeft()) {
+            this.moveLeft();
+            return limit;
+          }
+          if (
+            this._keyState.get("ArrowRight") &&
+            !this.isCollidingMoveRight()
+          ) {
+            this.moveRight();
+            return limit;
+          }
         }
+        return tick;
       }
-    }
 
-    function getMinX(pattern: { x: number; y: number }[]) {
-      let minX = 999;
-      for (let i = 0; i < pattern.length; i++) {
-        const tile = pattern[i];
-        if (tile.x < minX) {
-          minX = tile.x;
+      clearLine(row: number) {
+        for (let i = 0; i < this._grid.width; i++) {
+          this._grid.setValue(row * this._grid.width + i, GridValue.EMPTY);
         }
-      }
-      return minX;
-    }
-
-    function setCurrentPiece(
-      value: number = CURRENT_TETROMINO,
-      ignoreOccupied: boolean = false
-    ) {
-      moveOutTheWay();
-      const pattern = getCurrentPattern();
-
-      for (let i = 0; i < pattern.length; i++) {
-        const tile = pattern[i];
-        let y = currentPiece.position.y + tile.y;
-        let x = currentPiece.position.x + tile.x;
-        setBoard(x, y, value, ignoreOccupied);
-      }
-    }
-
-    function resetCurrentPiece() {
-      setCurrentPiece(EMPTY_TETROMINO, true);
-    }
-
-    function move(direction: string) {
-      resetCurrentPiece();
-
-      switch (direction) {
-        case "left":
-          !leftTilesCollide(1) && decrementPositionX();
-          break;
-        case "right":
-          !rightTilesCollide(1) && incrementPositionX();
-          break;
-        case "down":
-          !bottomTilesCollide(1) && incrementPositionY();
-          break;
-        case "up":
-          decrementPositionY();
-          break;
-      }
-
-      setCurrentPiece();
-    }
-
-    function incrementWhileLoopCounter() {
-      whileLoopCounter++;
-      if (whileLoopCounter >= WHILE_LOOP_MAX) {
-        throw Error("While loop maximum exceeded.");
-      }
-    }
-
-    function normalizePositionValue(value: number, min: number, max: number) {
-      if (value < min) {
-        value = min;
-      } else if (value >= max) {
-        value = max - 1;
-      }
-      return value;
-    }
-
-    function normalizePositionY(
-      value: number,
-      min: number = 0,
-      max: number = BOARD_HEIGHT + BOARD_BUFFER_HEIGHT
-    ) {
-      return normalizePositionValue(value, min, max);
-    }
-
-    function normalizePositionX(
-      value: number,
-      min: number = -2,
-      max: number = BOARD_WIDTH + 2
-    ) {
-      return normalizePositionValue(value, min, max);
-    }
-
-    function setPositionY(value: number) {
-      currentPiece.position.y = normalizePositionY(value);
-    }
-
-    function incrementPositionY() {
-      setPositionY(currentPiece.position.y + 1);
-    }
-
-    function decrementPositionY() {
-      setPositionY(currentPiece.position.y - 1);
-    }
-
-    function setPositionX(value: number) {
-      currentPiece.position.x = normalizePositionX(value);
-    }
-
-    function incrementPositionX() {
-      setPositionX(currentPiece.position.x + 1);
-    }
-
-    function decrementPositionX() {
-      setPositionX(currentPiece.position.x - 1);
-    }
-
-    function moveOutTheWay() {
-      const pattern = getCurrentPattern();
-
-      while (
-        (isInvalidCurrentPiece() || isOccupiedCurrentPiece()) &&
-        whileLoopCounter < WHILE_LOOP_MAX
-      ) {
-        incrementWhileLoopCounter();
-        for (let i = 0; i < pattern.length; i++) {
-          const tile = pattern[i];
-          let x = currentPiece.position.x + tile.x;
-          let y = currentPiece.position.y + tile.y;
-
-          let lowY = isInvalidBoardPositionLowY(y);
-          let occLowY =
-            !isInvalidBoardPosition(x, y + 1) && isOccupied(x, y + 1);
-
-          let highY = isInvalidBoardPositionHighY(y);
-          let occHighY =
-            !isInvalidBoardPosition(x, y - 1) && isOccupied(x, y - 1);
-
-          let highX = isInvalidBoardPositionHighX(x);
-          let occHighX =
-            !isInvalidBoardPosition(x + 1, y) && isOccupied(x + 1, y);
-
-          let lowX = isInvalidBoardPositionLowX(x);
-          let occLowX =
-            !isInvalidBoardPosition(x - 1, y) && isOccupied(x - 1, y);
-
-          while ((lowY || occLowY) && whileLoopCounter < WHILE_LOOP_MAX) {
-            incrementWhileLoopCounter();
-            decrementPositionY();
-            y = currentPiece.position.y + tile.y;
-            lowY = isInvalidBoardPositionLowY(y);
-            occLowY = !isInvalidBoardPosition(x, y + 1) && isOccupied(x, y + 1);
-          }
-
-          while ((highY || occHighY) && whileLoopCounter < WHILE_LOOP_MAX) {
-            incrementWhileLoopCounter();
-            incrementPositionY();
-            y = currentPiece.position.y + tile.y;
-            highY = isInvalidBoardPositionHighY(y);
-            occHighY =
-              !isInvalidBoardPosition(x, y - 1) && isOccupied(x, y - 1);
-          }
-
-          while ((highX || occHighX) && whileLoopCounter < WHILE_LOOP_MAX) {
-            incrementWhileLoopCounter();
-            decrementPositionX();
-            x = currentPiece.position.x + tile.x;
-            highX = isInvalidBoardPositionHighX(x);
-            occHighX =
-              !isInvalidBoardPosition(x + 1, y) && isOccupied(x + 1, y);
-          }
-
-          while ((lowX || occLowX) && whileLoopCounter < WHILE_LOOP_MAX) {
-            incrementWhileLoopCounter();
-            incrementPositionX();
-            x = currentPiece.position.x + tile.x;
-            lowX = isInvalidBoardPositionLowX(x);
-            occLowX = !isInvalidBoardPosition(x - 1, y) && isOccupied(x - 1, y);
+        for (let i = row; i > 0; i--) {
+          for (let j = 0; j < this._grid.width; j++) {
+            const previousRowValue = this._grid.getValue(
+              (i - 1) * this._grid.width + j
+            );
+            this._grid.setValue(i * this._grid.width + j, previousRowValue);
           }
         }
       }
-      whileLoopCounter = 0;
-    }
 
-    function rotate(degrees: number) {
-      resetCurrentPiece();
-
-      currentPiece.rotation += degrees;
-
-      if (currentPiece.rotation < 0) {
-        currentPiece.rotation += 4;
-      }
-
-      currentPiece.rotation %= 4;
-
-      setCurrentPiece();
-    }
-
-    function getPattern(piece: number, rotation: number) {
-      return PIECES[piece].patterns[rotation];
-    }
-
-    function getCurrentPattern() {
-      return PIECES[currentPiece.piece].patterns[currentPiece.rotation];
-    }
-
-    function bottomTilesCollide(n: number) {
-      const bottomTiles = getBottomTiles(getCurrentPattern());
-
-      for (let i = 0; i < bottomTiles.length; i++) {
-        const x = currentPiece.position.x + bottomTiles[i].x;
-        const y = currentPiece.position.y + bottomTiles[i].y + n;
-        if (detectCollision(x, y)) {
-          return true;
+      isFullRow(row: number) {
+        for (let i = 0; i < this._grid.width; i++) {
+          if (
+            this._grid.getValue(row * this._grid.width + i) == GridValue.EMPTY
+          ) {
+            return false;
+          }
         }
-      }
-      return false;
-    }
-
-    function leftTilesCollide(n: number) {
-      const leftTiles = getLeftTiles(getCurrentPattern());
-
-      for (let i = 0; i < leftTiles.length; i++) {
-        const x = currentPiece.position.x + leftTiles[i].x - n;
-        const y = currentPiece.position.y + leftTiles[i].y;
-        if (detectCollision(x, y)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    function rightTilesCollide(n: number) {
-      const rightTiles = getRightTiles(getCurrentPattern());
-
-      for (let i = 0; i < rightTiles.length; i++) {
-        const x = currentPiece.position.x + rightTiles[i].x + n;
-        const y = currentPiece.position.y + rightTiles[i].y;
-        if (detectCollision(x, y)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    function isNotEmpty(x: number, y: number) {
-      return !isInvalidBoardPosition(x, y) && board[y][x] != EMPTY_TETROMINO;
-    }
-
-    function detectCollision(x: number, y: number) {
-      if (isInvalidBoardPosition(x, y) || isNotEmpty(x, y)) {
         return true;
       }
-      return false;
-    }
 
-    window.addEventListener("keydown", (e) => {
-      keyState.set(e.key, true);
-    });
-
-    window.addEventListener("keyup", (e) => {
-      keyState.set(e.key, false);
-    });
-
-    function isInvalidBoardPositionLowX(x: number) {
-      return x < 0;
-    }
-
-    function isInvalidBoardPositionHighX(x: number) {
-      return x >= BOARD_WIDTH;
-    }
-
-    function isInvalidBoardPositionX(x: number) {
-      return isInvalidBoardPositionLowX(x) || isInvalidBoardPositionHighX(x);
-    }
-
-    function isInvalidBoardPositionLowY(y: number) {
-      return y >= BOARD_HEIGHT + BOARD_BUFFER_HEIGHT;
-    }
-
-    function isInvalidBoardPositionHighY(y: number) {
-      return y < 0;
-    }
-
-    function isInvalidBoardPositionY(y: number) {
-      return isInvalidBoardPositionLowY(y) || isInvalidBoardPositionHighY(y);
-    }
-
-    function isInvalidBoardPosition(x: number, y: number) {
-      return isInvalidBoardPositionX(x) || isInvalidBoardPositionY(y);
-    }
-
-    function isInvalidCurrentPiece() {
-      const pattern = getCurrentPattern();
-      for (let i = 0; i < pattern.length; i++) {
-        const tile = pattern[i];
-        const x = currentPiece.position.x + tile.x;
-        const y = currentPiece.position.y + tile.y;
-        if (isInvalidBoardPosition(x, y)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    function isOccupiedCurrentPiece() {
-      const pattern = getCurrentPattern();
-      for (let i = 0; i < pattern.length; i++) {
-        const tile = pattern[i];
-        const x = currentPiece.position.x + tile.x;
-        const y = currentPiece.position.y + tile.y;
-        if (isOccupied(x, y)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    function isOccupied(x: number, y: number) {
-      return (
-        getBoard(x, y) != EMPTY_TETROMINO && getBoard(x, y) != CURRENT_TETROMINO
-      );
-    }
-
-    function getBoard(x: number, y: number) {
-      if (isInvalidBoardPosition(x, y)) {
-        throw Error(`Invalid position (${x},${y}).`);
-      }
-
-      return board[y][x];
-    }
-
-    function setBoard(
-      x: number,
-      y: number,
-      value: number,
-      ignoreOccupied: boolean = false
-    ) {
-      if (isInvalidBoardPosition(x, y)) {
-        throw Error(`Invalid position (${x},${y})`);
-      }
-      if (!ignoreOccupied && isOccupied(x, y)) {
-        throw Error(`Already occupied (${x}, ${y})`);
-      }
-
-      board[y][x] = value;
-    }
-
-    function resetBoard() {
-      for (let i = 0; i < BOARD_HEIGHT + BOARD_BUFFER_HEIGHT; i++) {
-        for (let j = 0; j < BOARD_WIDTH; j++) {
-          setBoard(j, i, EMPTY_TETROMINO, true);
-        }
-      }
-    }
-
-    function clearLine(r: number) {
-      for (let i = 0; i < BOARD_WIDTH; i++) {
-        setBoard(i, r, EMPTY_TETROMINO, true);
-      }
-      for (let i = r; i > 0; i--) {
-        for (let j = 0; j < BOARD_WIDTH; j++) {
-          setBoard(j, i, getBoard(j, i - 1), true);
-        }
-      }
-    }
-
-    function clearLines() {
-      for (let i = 0; i < BOARD_HEIGHT + BOARD_BUFFER_HEIGHT; i++) {
-        let isFull = true;
-        for (let j = 0; j < BOARD_WIDTH; j++) {
-          if (getBoard(j, i) == EMPTY_TETROMINO) {
-            isFull = false;
-            break;
+      clearLines() {
+        let linesCleared = 0;
+        for (let row = 0; row < this._grid.totalHeight; row++) {
+          if (this.isFullRow(row)) {
+            this.clearLine(row);
+            linesCleared++;
           }
         }
-        if (isFull) {
-          clearLine(i);
+      }
+
+      reset() {
+        for (let i = 0; i < this._grid.totalHeight; i++) {
+          this.clearLine(i);
+        }
+      }
+
+      update() {
+        let inputTick = 0;
+        let moveDownTick = 0;
+
+        const draw = () => this.draw();
+        const handleInput = () => {
+          inputTick = this.handleInput(inputTick, 5);
+        };
+        const autoMoveDown = () => {
+          moveDownTick = this.autoMoveDown(moveDownTick, 50);
+        };
+
+        function loop() {
+          if (inputTick > 0) {
+            inputTick--;
+          }
+
+          if (moveDownTick > 0) {
+            moveDownTick--;
+          }
+
+          handleInput();
+          draw();
+          autoMoveDown();
+          requestAnimationFrame(loop);
+        }
+
+        loop();
+      }
+
+      start() {
+        this.setup();
+        this.update();
+      }
+    }
+
+    enum GridValue {
+      EMPTY,
+      CURRENT,
+      STRAIGHT,
+      SQUARE,
+      T,
+      L,
+      J,
+      S,
+      Z,
+    }
+
+    interface GridBackgroundParams {
+      grid: Grid;
+      color: string;
+    }
+
+    class GridBackground {
+      private _grid: Grid;
+      private _color: string;
+
+      constructor({ grid, color }: GridBackgroundParams) {
+        this._grid = grid;
+        this._color = color;
+      }
+
+      draw(ctx: CanvasRenderingContext2D) {
+        ctx.beginPath();
+        ctx.rect(
+          this._grid.x,
+          this._grid.y,
+          this._grid.width * this._grid.tileSize,
+          this._grid.totalHeight * this._grid.tileSize
+        );
+        ctx.fillStyle = this._color;
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+
+    function getColor(value: GridValue) {
+      switch (value) {
+        case GridValue.EMPTY:
+          return "#000000aa";
+        case GridValue.STRAIGHT:
+          return "cyan";
+        case GridValue.SQUARE:
+          return "yellow";
+        case GridValue.T:
+          return "purple";
+        case GridValue.L:
+          return "orange";
+        case GridValue.J:
+          return "blue";
+        case GridValue.S:
+          return "green";
+        case GridValue.Z:
+          return "red";
+        default:
+          return "magenta";
+      }
+    }
+
+    interface GridParams {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      bufferHeight: number;
+      tileSize: number;
+    }
+
+    class Grid {
+      private _x: number;
+      private _y: number;
+      private _width: number;
+      private _height: number;
+      private _bufferHeight: number;
+      private _tileSize: number;
+      private _grid: Array<GridValue>;
+
+      public get grid(): Array<GridValue> {
+        return this._grid;
+      }
+
+      public get x(): number {
+        return this._x;
+      }
+
+      public get y(): number {
+        return this._y;
+      }
+
+      public get width(): number {
+        return this._width;
+      }
+
+      public get bufferHeight(): number {
+        return this._bufferHeight;
+      }
+
+      public get totalHeight(): number {
+        return this._height + this._bufferHeight;
+      }
+
+      public get tileSize(): number {
+        return this._tileSize;
+      }
+
+      public get size(): number {
+        return this.width * this.totalHeight;
+      }
+
+      constructor({ x, y, width, height, bufferHeight, tileSize }: GridParams) {
+        this._x = x;
+        this._y = y;
+        this._width = width;
+        this._height = height;
+        this._bufferHeight = bufferHeight;
+        this._tileSize = tileSize;
+        this._grid = [];
+        this.initializeGrid();
+      }
+
+      public getValue(index: number) {
+        return this._grid[index];
+      }
+
+      public setValue(index: number, value: GridValue) {
+        this._grid[index] = value;
+      }
+
+      public draw(ctx: CanvasRenderingContext2D, showIndices: boolean = false) {
+        for (let i = 0; i < this.size; i++) {
+          const row = Math.floor(i / this.width);
+          const col = i % this.width;
+          const x = col * this.tileSize + this.x;
+          const y = row * this.tileSize + this.y;
+          const value = this.getValue(col + row * this.width);
+          ctx.beginPath();
+          ctx.rect(x, y, this.tileSize, this.tileSize);
+          ctx.fillStyle = getColor(value);
+          ctx.fill();
+
+          if (showIndices) {
+            ctx.fillStyle = "white";
+            ctx.fillText(
+              `${i}`,
+              x + (1 * this.tileSize) / 5,
+              y + (2 * this.tileSize) / 3
+            );
+          }
+
+          ctx.closePath();
+        }
+      }
+
+      private initializeGrid() {
+        for (let i = 0; i < this.size; i++) {
+          this._grid.push(GridValue.EMPTY);
         }
       }
     }
 
-    let timer = 0;
-    let rotationTimer = 0;
-    let collisionTimer = 0;
-    function gameLoop() {
-      if (timer > 0) {
-        timer--;
-      }
-      if (rotationTimer > 0) {
-        rotationTimer--;
-      }
-      if (collisionTimer > 0) {
-        collisionTimer--;
-      }
-      if (keyState.get("c") && !isSwapped) {
-        timer = 10;
-        resetCurrentPiece();
-        if (holdPiece == EMPTY_TETROMINO) {
-          holdPiece = currentPiece.piece;
-          currentPiece = newPiece();
-          piecesQueue.push(randomPiece());
-          setCurrentPiece();
-        } else {
-          [holdPiece, currentPiece.piece] = [currentPiece.piece, holdPiece];
-        }
-        isSwapped = true;
-      }
-      if (keyState.get("ArrowLeft") && timer == 0) {
-        timer = 5;
-        collisionTimer = 15;
-        move("left");
-      }
-      if (keyState.get("ArrowRight") && timer == 0) {
-        timer = 5;
-        collisionTimer = 15;
-        move("right");
-      }
-      if (keyState.get("ArrowDown") && timer == 0) {
-        timer = 5;
-        collisionTimer = 15;
-        move("down");
-      }
-      if (keyState.get("ArrowUp") && rotationTimer == 0) {
-        rotationTimer = 15;
-        collisionTimer = 15;
-        rotate(1);
-      }
-      if (keyState.get("z") && rotationTimer == 0) {
-        rotationTimer = 15;
-        collisionTimer = 15;
-        rotate(-1);
-      }
-      if (keyState.get(" ") && timer == 0) {
-        timer = 10;
-        while (!bottomTilesCollide(1) && whileLoopCounter < WHILE_LOOP_MAX) {
-          incrementWhileLoopCounter();
-          move("down");
-        }
-        whileLoopCounter = 0;
-      }
-
-      if (bottomTilesCollide(1)) {
-        if (currentPiece.position.y < BOARD_BUFFER_HEIGHT) {
-          resetBoard();
-        }
-
-        if (collisionTimer == 0) {
-          collisionTimer = 15;
-        }
-
-        if (collisionTimer < 5) {
-          resetCurrentPiece();
-          setCurrentPiece(currentPiece.piece);
-          currentPiece = newPiece();
-          piecesQueue.push(randomPiece());
-          clearLines();
-          setCurrentPiece();
-          isSwapped = false;
-        }
-      }
-      draw();
-
-      requestAnimationFrame(gameLoop);
+    interface TetrominoParams {
+      index: number;
+      value: GridValue;
+      tiles: Array<boolean>;
     }
 
-    setInterval(() => {
-      move("down");
-    }, 1000);
+    class Tetromino {
+      private _index: number;
+      private _value: GridValue;
+      private _tiles: Array<boolean>;
 
-    setCurrentPiece();
-    gameLoop();
+      public get index(): number {
+        return this._index;
+      }
+
+      public get value(): GridValue {
+        return this._value;
+      }
+
+      public get tiles(): Array<boolean> {
+        return this._tiles;
+      }
+
+      public set index(index: number) {
+        this._index = index;
+      }
+
+      public set tiles(tiles: Array<boolean>) {
+        this._tiles = tiles;
+      }
+
+      draw(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        tileSize: number,
+        maxSize: number
+      ) {
+        ctx.beginPath();
+        ctx.fillStyle = getColor(this.value);
+
+        for (let i = 0; i < this._tiles.length; i++) {
+          if (this.tiles[i]) {
+            ctx.fillRect(
+              x + (i % maxSize) * tileSize,
+              y + Math.floor(i / maxSize) * tileSize,
+              tileSize,
+              tileSize
+            );
+          }
+        }
+
+        ctx.closePath();
+      }
+
+      constructor({ index, value, tiles }: TetrominoParams) {
+        this._index = index;
+        this._value = value;
+        this._tiles = tiles;
+      }
+    }
+
+    class TetrominoQueue {
+      private _queue: Tetromino[];
+
+      public get next(): Tetromino | undefined {
+        const result = this._queue.shift();
+
+        this._queue.push(this.randomTetromino());
+
+        return result;
+      }
+
+      randomTetromino() {
+        let randomTiles: Array<boolean>;
+        const randomValue = Math.floor(Math.random() * 7 + 2);
+        switch (randomValue) {
+          case 2:
+            randomTiles = STRAIGHT_TILES;
+            break;
+          case 3:
+            randomTiles = SQUARE_TILES;
+            break;
+          case 4:
+            randomTiles = T_TILES;
+            break;
+          case 5:
+            randomTiles = L_TILES;
+            break;
+          case 6:
+            randomTiles = J_TILES;
+            break;
+          case 7:
+            randomTiles = S_TILES;
+            break;
+          default:
+            randomTiles = Z_TILES;
+            break;
+        }
+
+        return new Tetromino({
+          index: 0,
+          value: randomValue,
+          tiles: randomTiles,
+        });
+      }
+
+      draw(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        tileSize: number,
+        maxSize: number
+      ) {
+        ctx.beginPath();
+
+        for (let i = 0; i < this._queue.length; i++) {
+          this._queue[i].draw(
+            ctx,
+            x,
+            y + i * maxSize * tileSize,
+            tileSize,
+            maxSize
+          );
+        }
+
+        ctx.closePath();
+      }
+
+      constructor(size: number) {
+        this._queue = [];
+        for (let i = 0; i < size; i++) {
+          this._queue.push(this.randomTetromino());
+        }
+      }
+    }
+
+    const game = new Game({ canvas: CANVAS });
+    game.start();
   });
 
   return (
