@@ -501,6 +501,7 @@ export const TetrisGame = () => {
           this.moveDown();
           return limit;
         } else if (this.isCollidingMoveDown()) {
+          this.clearLines();
           if (this._currentTetromino.index < this._grid.totalHeight) {
             this.reset();
           }
@@ -646,7 +647,6 @@ export const TetrisGame = () => {
         const autoMoveDown = () => {
           moveDownTick = this.autoMoveDown(moveDownTick, 50);
         };
-        const clearLines = () => this.clearLines();
 
         function loop() {
           if (inputTick > 0) {
@@ -660,7 +660,6 @@ export const TetrisGame = () => {
           handleInput();
           draw();
           autoMoveDown();
-          clearLines();
           requestAnimationFrame(loop);
         }
 
