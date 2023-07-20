@@ -163,6 +163,7 @@ export const TetrisGame = () => {
       private _gridBackground: GridBackground;
       private _currentTetromino: Tetromino;
       private _keyState: Map<string, boolean>;
+      private _queue: TetrominoQueue;
 
       constructor({ canvas }: GameParams) {
         this._canvas = canvas;
@@ -183,42 +184,8 @@ export const TetrisGame = () => {
           color: GRID_BACKGROUND_COLOR,
         });
 
-        this._currentTetromino = this.randomTetromino();
-      }
-
-      randomTetromino() {
-        let randomTiles: Array<boolean>;
-        const randomValue = Math.floor(Math.random() * 7 + 2);
-        switch (randomValue) {
-          case 2:
-            randomTiles = STRAIGHT_TILES;
-            break;
-          case 3:
-            randomTiles = SQUARE_TILES;
-            break;
-          case 4:
-            randomTiles = T_TILES;
-            break;
-          case 5:
-            randomTiles = L_TILES;
-            break;
-          case 6:
-            randomTiles = J_TILES;
-            break;
-          case 7:
-            randomTiles = S_TILES;
-            break;
-          default:
-            randomTiles = Z_TILES;
-            break;
-        }
-
-        return new Tetromino({
-          index: 0,
-          rotation: 0,
-          value: randomValue,
-          tiles: randomTiles,
-        });
+        this._queue = new TetrominoQueue(5);
+        this._currentTetromino = this._queue.next!;
       }
 
       getEmptyIndex(value: GridValue) {
@@ -420,52 +387,65 @@ export const TetrisGame = () => {
         }
       }
 
+      drawValues() {
+        this._context.beginPath();
+        this._context.fillStyle = "white";
+
+        let count = 1;
+        for (let i = 0; i < 16; i++) {
+          if (this._currentTetromino.tiles[i]) {
+            this._context.fillText(`i = ${i}`, 50, 50 + count * 25);
+            count++;
+          }
+        }
+
+        this._context.fillText(
+          `position = ${this._currentTetromino.index}`,
+          10,
+          50 + (count + 1) * 25
+        );
+        this._context.fillText(
+          `isCollidingMoveDown = ${this.isCollidingMoveDown()}`,
+          10,
+          50 + (count + 2) * 25
+        );
+        this._context.fillText(
+          `isCollidingMoveLeft = ${this.isCollidingMoveLeft()}`,
+          10,
+          50 + (count + 3) * 25
+        );
+        this._context.fillText(
+          `isCollidingMoveRight = ${this.isCollidingMoveRight()}`,
+          10,
+          50 + (count + 4) * 25
+        );
+        this._context.fillText(
+          `isCollidingRightRotation = ${this.isCollidingRightRotation()}`,
+          10,
+          50 + (count + 5) * 25
+        );
+
+        this._context.closePath();
+      }
+
       draw(showValues: boolean = false) {
         this._context.fillStyle = "black";
         this._context.fillRect(0, 0, this._canvas.width, this._canvas.height);
         this._gridBackground.draw(this._context);
         this._grid.draw(this._context);
-
-        this._context.beginPath();
-        this._context.fillStyle = "white";
+        this._queue.draw(
+          this._context,
+          this._grid.x +
+            this._grid.width * this._grid.tileSize +
+            this._grid.tileSize,
+          this._grid.tileSize,
+          this._grid.tileSize,
+          TETROMINO_MAX_SIZE
+        );
 
         if (showValues) {
-          let count = 1;
-          for (let i = 0; i < 16; i++) {
-            if (this._currentTetromino.tiles[i]) {
-              this._context.fillText(`i = ${i}`, 50, 50 + count * 25);
-              count++;
-            }
-          }
-
-          this._context.fillText(
-            `position = ${this._currentTetromino.index}`,
-            10,
-            50 + (count + 1) * 25
-          );
-          this._context.fillText(
-            `isCollidingMoveDown = ${this.isCollidingMoveDown()}`,
-            10,
-            50 + (count + 2) * 25
-          );
-          this._context.fillText(
-            `isCollidingMoveLeft = ${this.isCollidingMoveLeft()}`,
-            10,
-            50 + (count + 3) * 25
-          );
-          this._context.fillText(
-            `isCollidingMoveRight = ${this.isCollidingMoveRight()}`,
-            10,
-            50 + (count + 4) * 25
-          );
-          this._context.fillText(
-            `isCollidingRightRotation = ${this.isCollidingRightRotation()}`,
-            10,
-            50 + (count + 5) * 25
-          );
+          this.drawValues();
         }
-
-        this._context.closePath();
       }
 
       setup() {
@@ -510,7 +490,7 @@ export const TetrisGame = () => {
             this.reset();
           }
 
-          this._currentTetromino = this.randomTetromino();
+          this._currentTetromino = this._queue.next!;
         }
         return tick;
       }
@@ -702,6 +682,29 @@ export const TetrisGame = () => {
       }
     }
 
+    function getColor(value: GridValue) {
+      switch (value) {
+        case GridValue.EMPTY:
+          return "#000000aa";
+        case GridValue.STRAIGHT:
+          return "cyan";
+        case GridValue.SQUARE:
+          return "yellow";
+        case GridValue.T:
+          return "purple";
+        case GridValue.L:
+          return "orange";
+        case GridValue.J:
+          return "blue";
+        case GridValue.S:
+          return "green";
+        case GridValue.Z:
+          return "red";
+        default:
+          return "magenta";
+      }
+    }
+
     interface GridParams {
       x: number;
       y: number;
@@ -771,29 +774,6 @@ export const TetrisGame = () => {
         this._grid[index] = value;
       }
 
-      getColor(value: GridValue) {
-        switch (value) {
-          case GridValue.EMPTY:
-            return "#000000aa";
-          case GridValue.STRAIGHT:
-            return "cyan";
-          case GridValue.SQUARE:
-            return "yellow";
-          case GridValue.T:
-            return "purple";
-          case GridValue.L:
-            return "orange";
-          case GridValue.J:
-            return "blue";
-          case GridValue.S:
-            return "green";
-          case GridValue.Z:
-            return "red";
-          default:
-            return "magenta";
-        }
-      }
-
       public draw(ctx: CanvasRenderingContext2D, showIndices: boolean = false) {
         for (let i = 0; i < this.size; i++) {
           const row = Math.floor(i / this.width);
@@ -803,7 +783,7 @@ export const TetrisGame = () => {
           const value = this.getValue(col + row * this.width);
           ctx.beginPath();
           ctx.rect(x, y, this.tileSize, this.tileSize);
-          ctx.fillStyle = this.getColor(value);
+          ctx.fillStyle = getColor(value);
           ctx.fill();
 
           if (showIndices) {
@@ -828,7 +808,6 @@ export const TetrisGame = () => {
 
     interface TetrominoParams {
       index: number;
-      rotation: number;
       value: GridValue;
       tiles: Array<boolean>;
     }
@@ -858,10 +837,109 @@ export const TetrisGame = () => {
         this._tiles = tiles;
       }
 
-      constructor({ index, rotation, value, tiles }: TetrominoParams) {
+      draw(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        tileSize: number,
+        maxSize: number
+      ) {
+        ctx.beginPath();
+        ctx.fillStyle = getColor(this.value);
+
+        for (let i = 0; i < this._tiles.length; i++) {
+          if (this.tiles[i]) {
+            ctx.fillRect(
+              x + (i % maxSize) * tileSize,
+              y + Math.floor(i / maxSize) * tileSize,
+              tileSize,
+              tileSize
+            );
+          }
+        }
+
+        ctx.closePath();
+      }
+
+      constructor({ index, value, tiles }: TetrominoParams) {
         this._index = index;
         this._value = value;
         this._tiles = tiles;
+      }
+    }
+
+    class TetrominoQueue {
+      private _queue: Tetromino[];
+
+      public get next(): Tetromino | undefined {
+        const result = this._queue.shift();
+
+        this._queue.push(this.randomTetromino());
+
+        return result;
+      }
+
+      randomTetromino() {
+        let randomTiles: Array<boolean>;
+        const randomValue = Math.floor(Math.random() * 7 + 2);
+        switch (randomValue) {
+          case 2:
+            randomTiles = STRAIGHT_TILES;
+            break;
+          case 3:
+            randomTiles = SQUARE_TILES;
+            break;
+          case 4:
+            randomTiles = T_TILES;
+            break;
+          case 5:
+            randomTiles = L_TILES;
+            break;
+          case 6:
+            randomTiles = J_TILES;
+            break;
+          case 7:
+            randomTiles = S_TILES;
+            break;
+          default:
+            randomTiles = Z_TILES;
+            break;
+        }
+
+        return new Tetromino({
+          index: 0,
+          value: randomValue,
+          tiles: randomTiles,
+        });
+      }
+
+      draw(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        tileSize: number,
+        maxSize: number
+      ) {
+        ctx.beginPath();
+
+        for (let i = 0; i < this._queue.length; i++) {
+          this._queue[i].draw(
+            ctx,
+            x,
+            y + i * maxSize * tileSize,
+            tileSize,
+            maxSize
+          );
+        }
+
+        ctx.closePath();
+      }
+
+      constructor(size: number) {
+        this._queue = [];
+        for (let i = 0; i < size; i++) {
+          this._queue.push(this.randomTetromino());
+        }
       }
     }
 
