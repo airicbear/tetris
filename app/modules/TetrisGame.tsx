@@ -164,11 +164,14 @@ export const TetrisGame = () => {
       private _currentTetromino: Tetromino;
       private _keyState: Map<string, boolean>;
       private _queue: TetrominoQueue;
+      private _hold: Tetromino | undefined;
+      private _swapped: boolean;
 
       constructor({ canvas }: GameParams) {
         this._canvas = canvas;
         this._context = canvas.getContext("2d")!;
         this._keyState = new Map();
+        this._swapped = false;
 
         this._grid = new Grid({
           x: GRID_X,
@@ -443,6 +446,18 @@ export const TetrisGame = () => {
           TETROMINO_MAX_SIZE
         );
 
+        if (this._hold) {
+          this._hold.draw(
+            this._context,
+            this._grid.x -
+              this._grid.tileSize * TETROMINO_MAX_SIZE -
+              this._grid.tileSize,
+            this._grid.tileSize,
+            this._grid.tileSize,
+            TETROMINO_MAX_SIZE
+          );
+        }
+
         if (showValues) {
           this.drawValues();
         }
@@ -491,6 +506,7 @@ export const TetrisGame = () => {
           }
 
           this._currentTetromino = this._queue.next!;
+          this._swapped = false;
         }
         return tick;
       }
@@ -530,6 +546,21 @@ export const TetrisGame = () => {
           if (this._keyState.get("z") && !this.isCollidingLeftRotation()) {
             this.rotateLeft();
             return limit * 2.5;
+          }
+          if (this._keyState.get("c") && !this._swapped) {
+            this._swapped = true;
+
+            this.clear();
+            if (this._hold == undefined) {
+              this._hold = this._currentTetromino;
+              this._currentTetromino = this._queue.next!;
+            } else {
+              const temp = this._currentTetromino;
+              this._currentTetromino = this._hold;
+              this._hold = temp;
+            }
+            this._currentTetromino.index = 0;
+            this.place();
           }
           if (
             this._keyState.get("ArrowUp") &&
