@@ -172,19 +172,17 @@ export const TetrisGame = () => {
       return keys[k];
     }
 
+    const GAME_KEYS = ["ArrowLeft","ArrowRight","ArrowDown","ArrowUp","z","Z","x","X","c","C"," ","r","R"];
+
     window.addEventListener("keydown", (e) => {
-      if (["ArrowLeft","ArrowRight","ArrowDown","ArrowUp","z","x","c"," "].includes(e.key)) {
-        e.preventDefault();
-      }
+      if (GAME_KEYS.includes(e.key)) e.preventDefault();
       const s = keyState(e.key);
       if (!s.held) { s.held = true; s.das = 0; s.arr = 0; handleKeyPress(e.key); }
     });
     window.addEventListener("keyup", (e) => {
       const s = keyState(e.key);
       s.held = false; s.das = 0; s.arr = 0;
-    });
-
-    // ── rotation with SRS wall kicks ───────────────────────────────────────
+    });    // ── rotation with SRS wall kicks ───────────────────────────────────────
     function rotate(dir: 1 | -1) {
       const isI = current.type === 0;
       const kicks = isI ? KICKS_I : KICKS_JLSTZ;
@@ -298,16 +296,17 @@ export const TetrisGame = () => {
 
     // ── input repeat (DAS/ARR) ─────────────────────────────────────────────
     function handleKeyPress(key: string) {
+      if (key === "r" || key === "R") { restart(); return; }
       if (gameOver || flashTimer > 0) return;
       switch (key) {
         case "ArrowLeft":  moveH(-1); break;
         case "ArrowRight": moveH(1);  break;
         case "ArrowDown":  softDrop(); break;
         case "ArrowUp":
-        case "x":          rotate(1);  break;
-        case "z":          rotate(-1); break;
-        case "c":          doHold();   break;
-        case " ":          hardDrop(); break;
+        case "x": case "X": rotate(1);  break;
+        case "z": case "Z": rotate(-1); break;
+        case "c": case "C": doHold();   break;
+        case " ":           hardDrop(); break;
       }
     }
 
@@ -555,10 +554,6 @@ export const TetrisGame = () => {
       dropTimer = 0; lockTimer = 0; lockResets = 0;
       current = dequeue();
     }
-
-    window.addEventListener("keydown", (e) => {
-      if (e.key === "r" || e.key === "R") restart();
-    });
 
     // ── main loop ──────────────────────────────────────────────────────────
     let lastTime = 0;
