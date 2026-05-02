@@ -1,4 +1,7 @@
 .game-canvas {
-  border: solid 2px #aaaaaa;
-  border-radius: 16px;
+  border: 2px solid #333;
+  border-radius: 12px;
+  display: block;
+  background: #0a0a0f;
+  box-shadow: 0 0 40px rgba(0, 200, 255, 0.15), 0 0 80px rgba(0, 0, 0, 0.6);
 }

@@ -1,990 +1,636 @@
 "use client";
-
 import styles from "../styles/TetrisGame.module.css";
-import Script from "next/script";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export const TetrisGame = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
   useEffect(() => {
-    const CANVAS: HTMLCanvasElement = document.querySelector("canvas")!;
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext("2d")!;
 
-    const GRID_WIDTH = 10;
-    const GRID_HEIGHT = 20;
-    const GRID_BUFFER_HEIGHT = 4;
-    const TETROMINO_MAX_SIZE = 4;
-    const TILE_SIZE = 25;
-    const GRID_X = CANVAS.width / 2 - (TILE_SIZE * GRID_WIDTH) / 2;
-    const GRID_Y = 0;
-    const GRID_BACKGROUND_COLOR = "gray";
+    // ── constants ──────────────────────────────────────────────────────────
+    const COLS = 10;
+    const ROWS = 20;
+    const TILE = 30;
+    const BOARD_X = Math.floor((canvas.width - COLS * TILE) / 2);
+    const BOARD_Y = 40;
 
-    const STRAIGHT_TILES = [
-      false,
-      false,
-      false,
-      false,
-      true,
-      true,
-      true,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
+    // SRS wall-kick data  [right-kick, left-kick]  per piece type
+    // Each entry: array of [dx,dy] offsets to try
+    const KICKS_JLSTZ: [number, number][][] = [
+      [[-1,0],[1,0],[-1,1],[1,-1],[0,2],[-1,2],[1,2]],   // 0->R / 0->L
+      [[1,0],[-1,0],[1,-1],[-1,1],[0,-2],[1,-2],[-1,-2]], // R->2 / R->0
+      [[1,0],[-1,0],[1,1],[-1,-1],[0,-2],[1,-2],[-1,-2]], // 2->L / 2->R
+      [[-1,0],[1,0],[-1,-1],[1,1],[0,2],[-1,2],[1,2]],    // L->0 / L->2
+    ];
+    const KICKS_I: [number, number][][] = [
+      [[-2,0],[2,0],[-2,-1],[2,1]],
+      [[1,0],[-2,0],[1,2],[-2,-1]],
+      [[2,0],[-2,0],[2,1],[-2,-1]],
+      [[-1,0],[2,0],[-1,2],[2,-1]],
     ];
 
-    const SQUARE_TILES = [
-      false,
-      false,
-      false,
-      false,
-      false,
-      true,
-      true,
-      false,
-      false,
-      true,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
+    // ── piece definitions ──────────────────────────────────────────────────
+    // Each piece: 4 rotation states, each state is array of [col,row] offsets from pivot
+    type PieceDef = { color: string; states: [number,number][][] };
+
+    const PIECES: PieceDef[] = [
+      { // I - cyan
+        color: "#00f0f0",
+        states: [
+          [[-1,0],[0,0],[1,0],[2,0]],
+          [[0,-1],[0,0],[0,1],[0,2]],
+          [[-1,1],[0,1],[1,1],[2,1]],
+          [[1,-1],[1,0],[1,1],[1,2]],
+        ],
+      },
+      { // O - yellow
+        color: "#f0f000",
+        states: [
+          [[0,0],[1,0],[0,1],[1,1]],
+          [[0,0],[1,0],[0,1],[1,1]],
+          [[0,0],[1,0],[0,1],[1,1]],
+          [[0,0],[1,0],[0,1],[1,1]],
+        ],
+      },
+      { // T - purple
+        color: "#a000f0",
+        states: [
+          [[-1,0],[0,0],[1,0],[0,-1]],
+          [[0,-1],[0,0],[0,1],[1,0]],
+          [[-1,0],[0,0],[1,0],[0,1]],
+          [[0,-1],[0,0],[0,1],[-1,0]],
+        ],
+      },
+      { // S - green
+        color: "#00f000",
+        states: [
+          [[0,0],[1,0],[-1,1],[0,1]],
+          [[0,-1],[0,0],[1,0],[1,1]],
+          [[0,0],[1,0],[-1,1],[0,1]],
+          [[0,-1],[0,0],[1,0],[1,1]],
+        ],
+      },
+      { // Z - red
+        color: "#f00000",
+        states: [
+          [[-1,0],[0,0],[0,1],[1,1]],
+          [[1,-1],[0,0],[1,0],[0,1]],
+          [[-1,0],[0,0],[0,1],[1,1]],
+          [[1,-1],[0,0],[1,0],[0,1]],
+        ],
+      },
+      { // J - blue
+        color: "#0000f0",
+        states: [
+          [[-1,-1],[-1,0],[0,0],[1,0]],
+          [[0,-1],[1,-1],[0,0],[0,1]],
+          [[-1,0],[0,0],[1,0],[1,1]],
+          [[0,-1],[0,0],[-1,1],[0,1]],
+        ],
+      },
+      { // L - orange
+        color: "#f0a000",
+        states: [
+          [[1,-1],[-1,0],[0,0],[1,0]],
+          [[0,-1],[0,0],[0,1],[1,1]],
+          [[-1,0],[0,0],[1,0],[-1,1]],
+          [[-1,-1],[0,-1],[0,0],[0,1]],
+        ],
+      },
     ];
 
-    const T_TILES = [
-      false,
-      true,
-      false,
-      false,
-      true,
-      true,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-    ];
+    // ── board ──────────────────────────────────────────────────────────────
+    type Cell = string | null;
+    const board: Cell[][] = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
 
-    const L_TILES = [
-      false,
-      false,
-      true,
-      false,
-      true,
-      true,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-    ];
+    // ── piece state ────────────────────────────────────────────────────────
+    interface ActivePiece { type: number; rot: number; x: number; y: number; }
 
-    const J_TILES = [
-      true,
-      false,
-      false,
-      false,
-      true,
-      true,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-    ];
-
-    const S_TILES = [
-      false,
-      true,
-      true,
-      false,
-      true,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-    ];
-
-    const Z_TILES = [
-      true,
-      true,
-      false,
-      false,
-      false,
-      true,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-    ];
-
-    const ROTATION_PIVOT = 5;
-
-    interface GameParams {
-      canvas: HTMLCanvasElement;
+    function newPiece(type: number): ActivePiece {
+      return { type, rot: 0, x: Math.floor(COLS / 2), y: 1 };
     }
 
-    class Game {
-      private _canvas: HTMLCanvasElement;
-      private _context: CanvasRenderingContext2D;
-      private _grid: Grid;
-      private _gridBackground: GridBackground;
-      private _currentTetromino: Tetromino;
-      private _keyState: Map<string, boolean>;
-      private _queue: TetrominoQueue;
-      private _hold: Tetromino | undefined;
-      private _swapped: boolean;
+    function cells(p: ActivePiece): [number,number][] {
+      return PIECES[p.type].states[p.rot].map(([dc,dr]) => [p.x + dc, p.y + dr]);
+    }
 
-      constructor({ canvas }: GameParams) {
-        this._canvas = canvas;
-        this._context = canvas.getContext("2d")!;
-        this._keyState = new Map();
-        this._swapped = false;
+    function valid(p: ActivePiece): boolean {
+      return cells(p).every(([c,r]) => c >= 0 && c < COLS && r < ROWS && (r < 0 || board[r][c] === null));
+    }
 
-        this._grid = new Grid({
-          x: GRID_X,
-          y: GRID_Y,
-          width: GRID_WIDTH,
-          height: GRID_HEIGHT,
-          bufferHeight: GRID_BUFFER_HEIGHT,
-          tileSize: TILE_SIZE,
-        });
-
-        this._gridBackground = new GridBackground({
-          grid: this._grid,
-          color: GRID_BACKGROUND_COLOR,
-        });
-
-        this._queue = new TetrominoQueue(5);
-        this._currentTetromino = this._queue.next!;
-      }
-
-      getEmptyIndex(value: GridValue) {
-        switch (value) {
-          case GridValue.S:
-          case GridValue.Z:
-            return 0;
-          case GridValue.SQUARE:
-          case GridValue.T:
-          case GridValue.J:
-          case GridValue.L:
-            return 0;
-          default:
-            return 0;
+    // ── bag randomizer (7-bag) ─────────────────────────────────────────────
+    let bag: number[] = [];
+    function nextFromBag(): number {
+      if (bag.length === 0) {
+        bag = [0,1,2,3,4,5,6];
+        for (let i = bag.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [bag[i], bag[j]] = [bag[j], bag[i]];
         }
       }
+      return bag.pop()!;
+    }
 
-      isCollidingLeftRotation() {
-        this.clear();
-        const numTiles = this._currentTetromino.tiles.length;
-        let rotated;
+    // ── queue & hold ───────────────────────────────────────────────────────
+    const PREVIEW_COUNT = 5;
+    const queue: number[] = Array.from({ length: PREVIEW_COUNT }, () => nextFromBag());
+    let holdType: number | null = null;
+    let holdUsed = false;
 
-        if (this._currentTetromino.value == GridValue.STRAIGHT) {
-          rotated = this.lRotate4x4(this._currentTetromino.tiles);
-        } else {
-          rotated = this.rotateMatrix(
-            this._currentTetromino.tiles,
-            ROTATION_PIVOT
-          );
-        }
+    function dequeue(): ActivePiece {
+      const t = queue.shift()!;
+      queue.push(nextFromBag());
+      return newPiece(t);
+    }
 
-        for (let i = 0; i < numTiles; i++) {
-          const index = this.mapTileToGrid(i);
-          const occupied = this._grid.getValue(index) != GridValue.EMPTY;
-          if (rotated[i] && occupied) {
-            this.place();
-            return true;
-          }
-        }
+    // ── game state ─────────────────────────────────────────────────────────
+    let current = dequeue();
+    let score = 0;
+    let lines = 0;
+    let level = 1;
+    let gameOver = false;
 
-        this.place();
-        return false;
+    // ── lock delay ─────────────────────────────────────────────────────────
+    const LOCK_DELAY_MS = 500;
+    let lockTimer = 0;
+    let lockResets = 0;
+    const MAX_LOCK_RESETS = 15;
+
+    // ── line clear animation ───────────────────────────────────────────────
+    let flashRows: number[] = [];
+    let flashTimer = 0;
+    const FLASH_DURATION = 400; // ms
+
+    // ── DAS / ARR ──────────────────────────────────────────────────────────
+    const DAS = 167; // ms before repeat starts
+    const ARR = 33;  // ms between repeats
+    const keys: Record<string, { held: boolean; das: number; arr: number }> = {};
+    function keyState(k: string) {
+      if (!keys[k]) keys[k] = { held: false, das: 0, arr: 0 };
+      return keys[k];
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (["ArrowLeft","ArrowRight","ArrowDown","ArrowUp","z","x","c"," "].includes(e.key)) {
+        e.preventDefault();
       }
+      const s = keyState(e.key);
+      if (!s.held) { s.held = true; s.das = 0; s.arr = 0; handleKeyPress(e.key); }
+    });
+    window.addEventListener("keyup", (e) => {
+      const s = keyState(e.key);
+      s.held = false; s.das = 0; s.arr = 0;
+    });
 
-      isCollidingRightRotation() {
-        this.clear();
-        const numTiles = this._currentTetromino.tiles.length;
-        let rotated;
+    // ── rotation with SRS wall kicks ───────────────────────────────────────
+    function rotate(dir: 1 | -1) {
+      const isI = current.type === 0;
+      const kicks = isI ? KICKS_I : KICKS_JLSTZ;
+      const fromRot = current.rot;
+      const toRot = (fromRot + dir + 4) % 4;
+      const kickSet = kicks[fromRot];
 
-        if (this._currentTetromino.value == GridValue.STRAIGHT) {
-          rotated = this.lRotate4x4(this._currentTetromino.tiles);
-        } else {
-          rotated = this.rotateMatrix(
-            this._currentTetromino.tiles,
-            ROTATION_PIVOT
-          );
-        }
+      const attempt = { ...current, rot: toRot };
+      if (valid(attempt)) { current = attempt; resetLock(); return; }
 
-        for (let i = 0; i < numTiles; i++) {
-          const index = this.mapTileToGrid(i);
-          const outOfBounds =
-            this._currentTetromino.index % this._grid.width >
-              this._grid.width - TETROMINO_MAX_SIZE ||
-            this._currentTetromino.index < 0;
-          const occupied = this._grid.getValue(index) != GridValue.EMPTY;
-          if (rotated[i] && (outOfBounds || occupied)) {
-            this._context.fillText(`${index}`, 10, (i + 2) * 10);
-            this.place();
-            return true;
-          }
-        }
-
-        this.place();
-        return false;
-      }
-
-      isCollidingMoveDown() {
-        this.clear();
-        const numTiles = this._currentTetromino.tiles.length;
-
-        for (let i = 0; i < numTiles; i++) {
-          const index = this.mapTileToGrid(i);
-          const occupied =
-            this._grid.getValue(index + this._grid.width) != GridValue.EMPTY;
-          if (this._currentTetromino.tiles[i] && occupied) {
-            this.place();
-            return true;
-          }
-        }
-
-        this.place();
-        return false;
-      }
-
-      isCollidingMoveLeft() {
-        this.clear();
-        const numTiles = this._currentTetromino.tiles.length;
-
-        for (let i = 0; i < numTiles; i++) {
-          const index = this.mapTileToGrid(i);
-          const outOfBounds = (index % this._grid.width) - 1 < 0;
-          const occupied = this._grid.getValue(index - 1) != GridValue.EMPTY;
-          if (this._currentTetromino.tiles[i] && (outOfBounds || occupied)) {
-            this.place();
-            return true;
-          }
-        }
-
-        this.place();
-        return false;
-      }
-
-      isCollidingMoveRight() {
-        this.clear();
-        const numTiles = this._currentTetromino.tiles.length;
-
-        for (let i = 0; i < numTiles; i++) {
-          const index = this.mapTileToGrid(i);
-          const outOfBounds =
-            (index % this._grid.width) + 1 >= this._grid.width;
-          const occupied = this._grid.getValue(index + 1) != GridValue.EMPTY;
-          if (this._currentTetromino.tiles[i] && (outOfBounds || occupied)) {
-            this.place();
-            return true;
-          }
-        }
-
-        this.place();
-        return false;
-      }
-
-      lRotate4x4(matrix: Array<boolean>): Array<boolean> {
-        const result: Array<boolean> = [];
-
-        for (let i = 3; i >= 0; i--) {
-          for (let j = 0; j < 4; j++) {
-            result.push(matrix[j * 4 + i]);
-          }
-        }
-
-        return result;
-      }
-
-      rRotate4x4(tiles: Array<boolean>) {
-        const result: boolean[] = [];
-
-        for (let i = 0; i < 4; i++) {
-          for (let j = 3; j >= 0; j--) {
-            result.push(tiles[j * 4 + i]);
-          }
-        }
-
-        return result;
-      }
-
-      rotateMatrix(matrix: boolean[], pivotIndex: number): boolean[] {
-        const size = Math.sqrt(matrix.length);
-        const pivotRow = Math.floor(pivotIndex / size);
-        const pivotCol = pivotIndex % size;
-        const newMatrix = new Array<boolean>(matrix.length);
-        for (let i = 0; i < matrix.length; i++) {
-          const row = Math.floor(i / size);
-          const col = i % size;
-          const newRow = pivotRow + (col - pivotCol);
-          const newCol = pivotCol - (row - pivotRow);
-          const newIndex = newRow * size + newCol;
-          newMatrix[newIndex] = matrix[i];
-        }
-        return newMatrix;
-      }
-
-      mapTileToGrid(i: number) {
-        const position = this._currentTetromino.index;
-        const row = this._grid.width * Math.floor(i / TETROMINO_MAX_SIZE);
-        const col = i % TETROMINO_MAX_SIZE;
-        return row + col + position;
-      }
-
-      place() {
-        const numTiles = this._currentTetromino.tiles.length;
-
-        for (let i = 0; i < numTiles; i++) {
-          if (this._currentTetromino.tiles[i]) {
-            this._grid.setValue(
-              this.mapTileToGrid(i),
-              this._currentTetromino.value
-            );
-          }
-        }
-      }
-
-      clear() {
-        const numTiles = this._currentTetromino.tiles.length;
-
-        for (let i = 0; i < numTiles; i++) {
-          if (this._currentTetromino.tiles[i]) {
-            this._grid.setValue(this.mapTileToGrid(i), GridValue.EMPTY);
-          }
-        }
-      }
-
-      drawValues() {
-        this._context.beginPath();
-        this._context.fillStyle = "white";
-
-        let count = 1;
-        for (let i = 0; i < 16; i++) {
-          if (this._currentTetromino.tiles[i]) {
-            this._context.fillText(`i = ${i}`, 50, 50 + count * 25);
-            count++;
-          }
-        }
-
-        this._context.fillText(
-          `position = ${this._currentTetromino.index}`,
-          10,
-          50 + (count + 1) * 25
-        );
-        this._context.fillText(
-          `isCollidingMoveDown = ${this.isCollidingMoveDown()}`,
-          10,
-          50 + (count + 2) * 25
-        );
-        this._context.fillText(
-          `isCollidingMoveLeft = ${this.isCollidingMoveLeft()}`,
-          10,
-          50 + (count + 3) * 25
-        );
-        this._context.fillText(
-          `isCollidingMoveRight = ${this.isCollidingMoveRight()}`,
-          10,
-          50 + (count + 4) * 25
-        );
-        this._context.fillText(
-          `isCollidingRightRotation = ${this.isCollidingRightRotation()}`,
-          10,
-          50 + (count + 5) * 25
-        );
-
-        this._context.closePath();
-      }
-
-      draw(showValues: boolean = false) {
-        this._context.fillStyle = "black";
-        this._context.fillRect(0, 0, this._canvas.width, this._canvas.height);
-        this._gridBackground.draw(this._context);
-        this._grid.draw(this._context);
-        this._queue.draw(
-          this._context,
-          this._grid.x +
-            this._grid.width * this._grid.tileSize +
-            this._grid.tileSize,
-          this._grid.tileSize,
-          this._grid.tileSize,
-          TETROMINO_MAX_SIZE
-        );
-
-        if (this._hold) {
-          this._hold.draw(
-            this._context,
-            this._grid.x -
-              this._grid.tileSize * TETROMINO_MAX_SIZE -
-              this._grid.tileSize,
-            this._grid.tileSize,
-            this._grid.tileSize,
-            TETROMINO_MAX_SIZE
-          );
-        }
-
-        if (showValues) {
-          this.drawValues();
-        }
-      }
-
-      setup() {
-        window.addEventListener("keydown", (e) => {
-          this._keyState.set(e.key, true);
-        });
-
-        window.addEventListener("keyup", (e) => {
-          this._keyState.set(e.key, false);
-        });
-
-        this.place();
-      }
-
-      moveDown() {
-        this.clear();
-        this._currentTetromino.index += this._grid.width;
-        this._currentTetromino.index %= this._grid.size;
-        this.place();
-      }
-
-      moveLeft() {
-        this.clear();
-        this._currentTetromino.index--;
-        this._currentTetromino.index %= this._grid.size;
-        this.place();
-      }
-
-      moveRight() {
-        this.clear();
-        this._currentTetromino.index++;
-        this._currentTetromino.index %= this._grid.size;
-        this.place();
-      }
-
-      autoMoveDown(tick: number, limit: number) {
-        if (tick <= 0 && !this.isCollidingMoveDown()) {
-          this.moveDown();
-          return limit;
-        } else if (this.isCollidingMoveDown()) {
-          this.clearLines();
-          if (this._currentTetromino.index < this._grid.totalHeight) {
-            this.reset();
-          }
-
-          this._currentTetromino = this._queue.next!;
-          this._swapped = false;
-        }
-        return tick;
-      }
-
-      rotateLeft() {
-        this.clear();
-        if (this._currentTetromino.value == GridValue.STRAIGHT) {
-          this._currentTetromino.tiles = this.rRotate4x4(
-            this._currentTetromino.tiles
-          );
-        } else if (this._currentTetromino.value != GridValue.SQUARE) {
-          this._currentTetromino.tiles = this.rotateMatrix(
-            this._currentTetromino.tiles,
-            ROTATION_PIVOT
-          );
-        }
-        this.place();
-      }
-
-      rotateRight() {
-        this.clear();
-        if (this._currentTetromino.value == GridValue.STRAIGHT) {
-          this._currentTetromino.tiles = this.rRotate4x4(
-            this._currentTetromino.tiles
-          );
-        } else if (this._currentTetromino.value != GridValue.SQUARE) {
-          this._currentTetromino.tiles = this.rotateMatrix(
-            this._currentTetromino.tiles,
-            ROTATION_PIVOT
-          );
-        }
-        this.place();
-      }
-
-      handleInput(tick: number, limit: number) {
-        if (tick <= 0) {
-          if (this._keyState.get("z") && !this.isCollidingLeftRotation()) {
-            this.rotateLeft();
-            return limit * 2.5;
-          }
-          if (this._keyState.get("c") && !this._swapped) {
-            this._swapped = true;
-
-            this.clear();
-            if (this._hold == undefined) {
-              this._hold = this._currentTetromino;
-              this._currentTetromino = this._queue.next!;
-            } else {
-              const temp = this._currentTetromino;
-              this._currentTetromino = this._hold;
-              this._hold = temp;
-            }
-            this._currentTetromino.index = 0;
-            this.place();
-          }
-          if (
-            this._keyState.get("ArrowUp") &&
-            !this.isCollidingRightRotation()
-          ) {
-            this.rotateRight();
-            return limit * 2.5;
-          }
-          if (this._keyState.get(" ")) {
-            while (!this.isCollidingMoveDown()) {
-              this.moveDown();
-            }
-            return limit * 2.5;
-          }
-          if (this._keyState.get("ArrowDown") && !this.isCollidingMoveDown()) {
-            this.moveDown();
-            return limit;
-          }
-          if (this._keyState.get("ArrowLeft") && !this.isCollidingMoveLeft()) {
-            this.moveLeft();
-            return limit;
-          }
-          if (
-            this._keyState.get("ArrowRight") &&
-            !this.isCollidingMoveRight()
-          ) {
-            this.moveRight();
-            return limit;
-          }
-        }
-        return tick;
-      }
-
-      clearLine(row: number) {
-        for (let i = 0; i < this._grid.width; i++) {
-          this._grid.setValue(row * this._grid.width + i, GridValue.EMPTY);
-        }
-        for (let i = row; i > 0; i--) {
-          for (let j = 0; j < this._grid.width; j++) {
-            const previousRowValue = this._grid.getValue(
-              (i - 1) * this._grid.width + j
-            );
-            this._grid.setValue(i * this._grid.width + j, previousRowValue);
-          }
-        }
-      }
-
-      isFullRow(row: number) {
-        for (let i = 0; i < this._grid.width; i++) {
-          if (
-            this._grid.getValue(row * this._grid.width + i) == GridValue.EMPTY
-          ) {
-            return false;
-          }
-        }
-        return true;
-      }
-
-      clearLines() {
-        let linesCleared = 0;
-        for (let row = 0; row < this._grid.totalHeight; row++) {
-          if (this.isFullRow(row)) {
-            this.clearLine(row);
-            linesCleared++;
-          }
-        }
-      }
-
-      reset() {
-        for (let i = 0; i < this._grid.totalHeight; i++) {
-          this.clearLine(i);
-        }
-      }
-
-      update() {
-        let inputTick = 0;
-        let moveDownTick = 0;
-
-        const draw = () => this.draw();
-        const handleInput = () => {
-          inputTick = this.handleInput(inputTick, 5);
-        };
-        const autoMoveDown = () => {
-          moveDownTick = this.autoMoveDown(moveDownTick, 50);
-        };
-
-        function loop() {
-          if (inputTick > 0) {
-            inputTick--;
-          }
-
-          if (moveDownTick > 0) {
-            moveDownTick--;
-          }
-
-          handleInput();
-          draw();
-          autoMoveDown();
-          requestAnimationFrame(loop);
-        }
-
-        loop();
-      }
-
-      start() {
-        this.setup();
-        this.update();
+      for (const [dx, dy] of kickSet) {
+        const kicked = { ...attempt, x: attempt.x + (dir === 1 ? dx : -dx), y: attempt.y + (dir === 1 ? dy : -dy) };
+        if (valid(kicked)) { current = kicked; resetLock(); return; }
       }
     }
 
-    enum GridValue {
-      EMPTY,
-      CURRENT,
-      STRAIGHT,
-      SQUARE,
-      T,
-      L,
-      J,
-      S,
-      Z,
+    function resetLock() {
+      if (lockResets < MAX_LOCK_RESETS) { lockTimer = 0; lockResets++; }
     }
 
-    interface GridBackgroundParams {
-      grid: Grid;
-      color: string;
+    // ── movement ───────────────────────────────────────────────────────────
+    function moveH(dx: number) {
+      const moved = { ...current, x: current.x + dx };
+      if (valid(moved)) { current = moved; resetLock(); }
     }
 
-    class GridBackground {
-      private _grid: Grid;
-      private _color: string;
+    function softDrop() {
+      const moved = { ...current, y: current.y + 1 };
+      if (valid(moved)) { current = moved; score += 1; dropTimer = 0; }
+    }
 
-      constructor({ grid, color }: GridBackgroundParams) {
-        this._grid = grid;
-        this._color = color;
+    function hardDrop() {
+      let dropped = 0;
+      while (true) {
+        const moved = { ...current, y: current.y + 1 };
+        if (!valid(moved)) break;
+        current = moved; dropped++;
+      }
+      score += dropped * 2;
+      lock();
+    }
+
+    function ghostY(): number {
+      let gy = current.y;
+      while (true) {
+        const moved = { ...current, y: gy + 1 };
+        if (!valid(moved)) break;
+        gy++;
+      }
+      return gy;
+    }
+
+    // ── hold ───────────────────────────────────────────────────────────────
+    function doHold() {
+      if (holdUsed) return;
+      holdUsed = true;
+      if (holdType === null) {
+        holdType = current.type;
+        current = dequeue();
+      } else {
+        const tmp = holdType;
+        holdType = current.type;
+        current = newPiece(tmp);
+      }
+      lockTimer = 0; lockResets = 0;
+    }
+
+    // ── locking & line clears ──────────────────────────────────────────────
+    function lock() {
+      cells(current).forEach(([c,r]) => {
+        if (r >= 0) board[r][c] = PIECES[current.type].color;
+      });
+
+      const full: number[] = [];
+      for (let r = 0; r < ROWS; r++) {
+        if (board[r].every(c => c !== null)) full.push(r);
       }
 
-      draw(ctx: CanvasRenderingContext2D) {
+      if (full.length > 0) {
+        flashRows = full;
+        flashTimer = FLASH_DURATION;
+        // scoring: Puyo-style multiplier
+        const pts = [0, 100, 300, 500, 800];
+        score += (pts[full.length] ?? 800) * level;
+        lines += full.length;
+        level = Math.floor(lines / 10) + 1;
+      }
+
+      current = dequeue();
+      holdUsed = false;
+      lockTimer = 0; lockResets = 0;
+
+      if (!valid(current)) { gameOver = true; }
+    }
+
+    function applyClears() {
+      for (const r of flashRows.slice().sort((a,b) => b - a)) {
+        board.splice(r, 1);
+        board.unshift(Array(COLS).fill(null));
+      }
+      flashRows = [];
+    }
+
+    // ── gravity ────────────────────────────────────────────────────────────
+    function gravityMs(): number {
+      // Puyo Puyo 2 style: gets faster each level
+      return Math.max(50, 1000 * Math.pow(0.85, level - 1));
+    }
+
+    let dropTimer = 0;
+
+    // ── input repeat (DAS/ARR) ─────────────────────────────────────────────
+    function handleKeyPress(key: string) {
+      if (gameOver || flashTimer > 0) return;
+      switch (key) {
+        case "ArrowLeft":  moveH(-1); break;
+        case "ArrowRight": moveH(1);  break;
+        case "ArrowDown":  softDrop(); break;
+        case "ArrowUp":
+        case "x":          rotate(1);  break;
+        case "z":          rotate(-1); break;
+        case "c":          doHold();   break;
+        case " ":          hardDrop(); break;
+      }
+    }
+
+    function tickDAS(dt: number) {
+      for (const key of ["ArrowLeft","ArrowRight","ArrowDown"]) {
+        const s = keyState(key);
+        if (!s.held) continue;
+        s.das += dt;
+        if (s.das >= DAS) {
+          s.arr += dt;
+          if (s.arr >= ARR) {
+            s.arr = 0;
+            handleKeyPress(key);
+          }
+        }
+      }
+    }
+
+    // ── drawing helpers ────────────────────────────────────────────────────
+    function drawTile(x: number, y: number, color: string, alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      // main fill
+      ctx.fillStyle = color;
+      ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+      // highlight top-left
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.fillRect(x + 1, y + 1, TILE - 2, 4);
+      ctx.fillRect(x + 1, y + 1, 4, TILE - 2);
+      // shadow bottom-right
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.fillRect(x + 1, y + TILE - 5, TILE - 2, 4);
+      ctx.fillRect(x + TILE - 5, y + 1, 4, TILE - 2);
+      ctx.restore();
+    }
+
+    function drawBoard() {
+      // background
+      ctx.fillStyle = "#111";
+      ctx.fillRect(BOARD_X, BOARD_Y, COLS * TILE, ROWS * TILE);
+
+      // grid lines
+      ctx.strokeStyle = "rgba(255,255,255,0.05)";
+      ctx.lineWidth = 1;
+      for (let c = 0; c <= COLS; c++) {
         ctx.beginPath();
-        ctx.rect(
-          this._grid.x,
-          this._grid.y,
-          this._grid.width * this._grid.tileSize,
-          this._grid.totalHeight * this._grid.tileSize
-        );
-        ctx.fillStyle = this._color;
-        ctx.fill();
-        ctx.closePath();
+        ctx.moveTo(BOARD_X + c * TILE, BOARD_Y);
+        ctx.lineTo(BOARD_X + c * TILE, BOARD_Y + ROWS * TILE);
+        ctx.stroke();
       }
-    }
-
-    function getColor(value: GridValue) {
-      switch (value) {
-        case GridValue.EMPTY:
-          return "#000000aa";
-        case GridValue.STRAIGHT:
-          return "cyan";
-        case GridValue.SQUARE:
-          return "yellow";
-        case GridValue.T:
-          return "purple";
-        case GridValue.L:
-          return "orange";
-        case GridValue.J:
-          return "blue";
-        case GridValue.S:
-          return "green";
-        case GridValue.Z:
-          return "red";
-        default:
-          return "magenta";
-      }
-    }
-
-    interface GridParams {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      bufferHeight: number;
-      tileSize: number;
-    }
-
-    class Grid {
-      private _x: number;
-      private _y: number;
-      private _width: number;
-      private _height: number;
-      private _bufferHeight: number;
-      private _tileSize: number;
-      private _grid: Array<GridValue>;
-
-      public get grid(): Array<GridValue> {
-        return this._grid;
+      for (let r = 0; r <= ROWS; r++) {
+        ctx.beginPath();
+        ctx.moveTo(BOARD_X, BOARD_Y + r * TILE);
+        ctx.lineTo(BOARD_X + COLS * TILE, BOARD_Y + r * TILE);
+        ctx.stroke();
       }
 
-      public get x(): number {
-        return this._x;
-      }
-
-      public get y(): number {
-        return this._y;
-      }
-
-      public get width(): number {
-        return this._width;
-      }
-
-      public get bufferHeight(): number {
-        return this._bufferHeight;
-      }
-
-      public get totalHeight(): number {
-        return this._height + this._bufferHeight;
-      }
-
-      public get tileSize(): number {
-        return this._tileSize;
-      }
-
-      public get size(): number {
-        return this.width * this.totalHeight;
-      }
-
-      constructor({ x, y, width, height, bufferHeight, tileSize }: GridParams) {
-        this._x = x;
-        this._y = y;
-        this._width = width;
-        this._height = height;
-        this._bufferHeight = bufferHeight;
-        this._tileSize = tileSize;
-        this._grid = [];
-        this.initializeGrid();
-      }
-
-      public getValue(index: number) {
-        return this._grid[index];
-      }
-
-      public setValue(index: number, value: GridValue) {
-        this._grid[index] = value;
-      }
-
-      public draw(ctx: CanvasRenderingContext2D, showIndices: boolean = false) {
-        for (let i = 0; i < this.size; i++) {
-          const row = Math.floor(i / this.width);
-          const col = i % this.width;
-          const x = col * this.tileSize + this.x;
-          const y = row * this.tileSize + this.y;
-          const value = this.getValue(col + row * this.width);
-          ctx.beginPath();
-          ctx.rect(x, y, this.tileSize, this.tileSize);
-          ctx.fillStyle = getColor(value);
-          ctx.fill();
-
-          if (showIndices) {
+      // placed cells
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = board[r][c];
+          if (!cell) continue;
+          const isFlash = flashRows.includes(r);
+          if (isFlash) {
+            const t = 1 - flashTimer / FLASH_DURATION;
+            const flash = Math.sin(t * Math.PI * 6) * 0.5 + 0.5;
+            ctx.save();
+            ctx.globalAlpha = 0.4 + flash * 0.6;
             ctx.fillStyle = "white";
-            ctx.fillText(
-              `${i}`,
-              x + (1 * this.tileSize) / 5,
-              y + (2 * this.tileSize) / 3
-            );
-          }
-
-          ctx.closePath();
-        }
-      }
-
-      private initializeGrid() {
-        for (let i = 0; i < this.size; i++) {
-          this._grid.push(GridValue.EMPTY);
-        }
-      }
-    }
-
-    interface TetrominoParams {
-      index: number;
-      value: GridValue;
-      tiles: Array<boolean>;
-    }
-
-    class Tetromino {
-      private _index: number;
-      private _value: GridValue;
-      private _tiles: Array<boolean>;
-
-      public get index(): number {
-        return this._index;
-      }
-
-      public get value(): GridValue {
-        return this._value;
-      }
-
-      public get tiles(): Array<boolean> {
-        return this._tiles;
-      }
-
-      public set index(index: number) {
-        this._index = index;
-      }
-
-      public set tiles(tiles: Array<boolean>) {
-        this._tiles = tiles;
-      }
-
-      draw(
-        ctx: CanvasRenderingContext2D,
-        x: number,
-        y: number,
-        tileSize: number,
-        maxSize: number
-      ) {
-        ctx.beginPath();
-        ctx.fillStyle = getColor(this.value);
-
-        for (let i = 0; i < this._tiles.length; i++) {
-          if (this.tiles[i]) {
-            ctx.fillRect(
-              x + (i % maxSize) * tileSize,
-              y + Math.floor(i / maxSize) * tileSize,
-              tileSize,
-              tileSize
-            );
+            ctx.fillRect(BOARD_X + c * TILE + 1, BOARD_Y + r * TILE + 1, TILE - 2, TILE - 2);
+            ctx.restore();
+          } else {
+            drawTile(BOARD_X + c * TILE, BOARD_Y + r * TILE, cell);
           }
         }
-
-        ctx.closePath();
       }
 
-      constructor({ index, value, tiles }: TetrominoParams) {
-        this._index = index;
-        this._value = value;
-        this._tiles = tiles;
-      }
+      // board border
+      ctx.strokeStyle = "#555";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(BOARD_X, BOARD_Y, COLS * TILE, ROWS * TILE);
     }
 
-    class TetrominoQueue {
-      private _queue: Tetromino[];
-
-      public get next(): Tetromino | undefined {
-        const result = this._queue.shift();
-
-        this._queue.push(this.randomTetromino());
-
-        return result;
-      }
-
-      randomTetromino() {
-        let randomTiles: Array<boolean>;
-        const randomValue = Math.floor(Math.random() * 7 + 2);
-        switch (randomValue) {
-          case 2:
-            randomTiles = STRAIGHT_TILES;
-            break;
-          case 3:
-            randomTiles = SQUARE_TILES;
-            break;
-          case 4:
-            randomTiles = T_TILES;
-            break;
-          case 5:
-            randomTiles = L_TILES;
-            break;
-          case 6:
-            randomTiles = J_TILES;
-            break;
-          case 7:
-            randomTiles = S_TILES;
-            break;
-          default:
-            randomTiles = Z_TILES;
-            break;
+    function drawGhost() {
+      const gy = ghostY();
+      if (gy === current.y) return;
+      const color = PIECES[current.type].color;
+      PIECES[current.type].states[current.rot].forEach(([dc,dr]) => {
+        const c = current.x + dc;
+        const r = gy + dr;
+        if (r >= 0 && r < ROWS) {
+          ctx.save();
+          ctx.globalAlpha = 0.25;
+          ctx.fillStyle = color;
+          ctx.fillRect(BOARD_X + c * TILE + 1, BOARD_Y + r * TILE + 1, TILE - 2, TILE - 2);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(BOARD_X + c * TILE + 1, BOARD_Y + r * TILE + 1, TILE - 2, TILE - 2);
+          ctx.restore();
         }
-
-        return new Tetromino({
-          index: 0,
-          value: randomValue,
-          tiles: randomTiles,
-        });
-      }
-
-      draw(
-        ctx: CanvasRenderingContext2D,
-        x: number,
-        y: number,
-        tileSize: number,
-        maxSize: number
-      ) {
-        ctx.beginPath();
-
-        for (let i = 0; i < this._queue.length; i++) {
-          this._queue[i].draw(
-            ctx,
-            x,
-            y + i * maxSize * tileSize,
-            tileSize,
-            maxSize
-          );
-        }
-
-        ctx.closePath();
-      }
-
-      constructor(size: number) {
-        this._queue = [];
-        for (let i = 0; i < size; i++) {
-          this._queue.push(this.randomTetromino());
-        }
-      }
+      });
     }
 
-    const game = new Game({ canvas: CANVAS });
-    game.start();
-  });
+    function drawCurrent() {
+      const color = PIECES[current.type].color;
+      cells(current).forEach(([c,r]) => {
+        if (r >= 0) drawTile(BOARD_X + c * TILE, BOARD_Y + r * TILE, color);
+      });
+    }
+
+    function drawMiniPiece(type: number, cx: number, cy: number, tileSize: number) {
+      const color = PIECES[type].color;
+      const offsets = PIECES[type].states[0];
+      // center the piece in the preview box
+      const minC = Math.min(...offsets.map(([c]) => c));
+      const maxC = Math.max(...offsets.map(([c]) => c));
+      const minR = Math.min(...offsets.map(([,r]) => r));
+      const maxR = Math.max(...offsets.map(([,r]) => r));
+      const pw = (maxC - minC + 1) * tileSize;
+      const ph = (maxR - minR + 1) * tileSize;
+      const ox = cx - pw / 2;
+      const oy = cy - ph / 2;
+      offsets.forEach(([dc,dr]) => {
+        const px = ox + (dc - minC) * tileSize;
+        const py = oy + (dr - minR) * tileSize;
+        ctx.fillStyle = color;
+        ctx.fillRect(px + 1, py + 1, tileSize - 2, tileSize - 2);
+        ctx.fillStyle = "rgba(255,255,255,0.3)";
+        ctx.fillRect(px + 1, py + 1, tileSize - 2, 3);
+        ctx.fillRect(px + 1, py + 1, 3, tileSize - 2);
+      });
+    }
+
+    function drawSidePanels() {
+      const panelW = 120;
+      const miniTile = 18;
+      const rightX = BOARD_X + COLS * TILE + 16;
+      const leftX = BOARD_X - panelW - 16;
+
+      ctx.font = "bold 13px 'Segoe UI', sans-serif";
+      ctx.textAlign = "left";
+
+      // ── NEXT ──
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.beginPath();
+      ctx.roundRect(rightX, BOARD_Y, panelW, PREVIEW_COUNT * 60 + 10, 8);
+      ctx.fill();
+
+      ctx.fillStyle = "#aaa";
+      ctx.fillText("NEXT", rightX + 10, BOARD_Y + 18);
+
+      for (let i = 0; i < PREVIEW_COUNT; i++) {
+        drawMiniPiece(queue[i], rightX + panelW / 2, BOARD_Y + 40 + i * 60, miniTile);
+      }
+
+      // ── HOLD ──
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.beginPath();
+      ctx.roundRect(leftX, BOARD_Y, panelW, 80, 8);
+      ctx.fill();
+
+      ctx.fillStyle = "#aaa";
+      ctx.fillText("HOLD", leftX + 10, BOARD_Y + 18);
+      if (holdType !== null) {
+        ctx.save();
+        if (holdUsed) ctx.globalAlpha = 0.4;
+        drawMiniPiece(holdType, leftX + panelW / 2, BOARD_Y + 50, miniTile);
+        ctx.restore();
+      }
+
+      // ── SCORE / LEVEL / LINES ──
+      const statsY = BOARD_Y + 100;
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.beginPath();
+      ctx.roundRect(leftX, statsY, panelW, 130, 8);
+      ctx.fill();
+
+      ctx.fillStyle = "#aaa";
+      ctx.fillText("SCORE", leftX + 10, statsY + 20);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 15px 'Segoe UI', sans-serif";
+      ctx.fillText(score.toString(), leftX + 10, statsY + 40);
+
+      ctx.font = "bold 13px 'Segoe UI', sans-serif";
+      ctx.fillStyle = "#aaa";
+      ctx.fillText("LEVEL", leftX + 10, statsY + 68);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 15px 'Segoe UI', sans-serif";
+      ctx.fillText(level.toString(), leftX + 10, statsY + 88);
+
+      ctx.font = "bold 13px 'Segoe UI', sans-serif";
+      ctx.fillStyle = "#aaa";
+      ctx.fillText("LINES", leftX + 10, statsY + 110);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 15px 'Segoe UI', sans-serif";
+      ctx.fillText(lines.toString(), leftX + 10, statsY + 130);
+
+      // ── CONTROLS ──
+      const ctrlY = statsY + 150;
+      ctx.fillStyle = "rgba(255,255,255,0.06)";
+      ctx.beginPath();
+      ctx.roundRect(leftX, ctrlY, panelW, 160, 8);
+      ctx.fill();
+
+      ctx.font = "11px 'Segoe UI', sans-serif";
+      ctx.fillStyle = "#888";
+      const controls = [
+        ["← →", "Move"],
+        ["↓", "Soft drop"],
+        ["Space", "Hard drop"],
+        ["↑ / X", "Rotate R"],
+        ["Z", "Rotate L"],
+        ["C", "Hold"],
+      ];
+      controls.forEach(([key, desc], i) => {
+        ctx.fillStyle = "#666";
+        ctx.fillText(key, leftX + 8, ctrlY + 18 + i * 24);
+        ctx.fillStyle = "#999";
+        ctx.fillText(desc, leftX + 48, ctrlY + 18 + i * 24);
+      });
+    }
+
+    function drawGameOver() {
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(BOARD_X, BOARD_Y, COLS * TILE, ROWS * TILE);
+      ctx.fillStyle = "#f55";
+      ctx.font = "bold 28px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("GAME OVER", BOARD_X + COLS * TILE / 2, BOARD_Y + ROWS * TILE / 2 - 20);
+      ctx.fillStyle = "#aaa";
+      ctx.font = "16px 'Segoe UI', sans-serif";
+      ctx.fillText("Press R to restart", BOARD_X + COLS * TILE / 2, BOARD_Y + ROWS * TILE / 2 + 16);
+    }
+
+    // ── restart ────────────────────────────────────────────────────────────
+    function restart() {
+      for (let r = 0; r < ROWS; r++) board[r].fill(null);
+      bag = [];
+      queue.length = 0;
+      for (let i = 0; i < PREVIEW_COUNT; i++) queue.push(nextFromBag());
+      holdType = null; holdUsed = false;
+      score = 0; lines = 0; level = 1;
+      gameOver = false;
+      flashRows = []; flashTimer = 0;
+      dropTimer = 0; lockTimer = 0; lockResets = 0;
+      current = dequeue();
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "r" || e.key === "R") restart();
+    });
+
+    // ── main loop ──────────────────────────────────────────────────────────
+    let lastTime = 0;
+
+    function loop(ts: number) {
+      const dt = Math.min(ts - lastTime, 50); // cap at 50ms to avoid spiral
+      lastTime = ts;
+
+      if (!gameOver) {
+        tickDAS(dt);
+
+        if (flashTimer > 0) {
+          flashTimer -= dt;
+          if (flashTimer <= 0) { flashTimer = 0; applyClears(); }
+        } else {
+          // gravity
+          dropTimer += dt;
+          const grav = gravityMs();
+          if (dropTimer >= grav) {
+            dropTimer -= grav;
+            const moved = { ...current, y: current.y + 1 };
+            if (valid(moved)) {
+              current = moved;
+              lockTimer = 0; lockResets = 0;
+            } else {
+              // piece is on the ground — run lock delay
+              lockTimer += dt;
+              if (lockTimer >= LOCK_DELAY_MS) lock();
+            }
+          } else {
+            // also tick lock delay when piece is grounded but gravity hasn't fired
+            const grounded = !valid({ ...current, y: current.y + 1 });
+            if (grounded) {
+              lockTimer += dt;
+              if (lockTimer >= LOCK_DELAY_MS) lock();
+            }
+          }
+        }
+      }
+
+      // draw
+      ctx.fillStyle = "#0a0a0f";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // title
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 20px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("TETRIS", canvas.width / 2, 26);
+
+      drawBoard();
+      if (!gameOver && flashTimer <= 0) { drawGhost(); drawCurrent(); }
+      drawSidePanels();
+      if (gameOver) drawGameOver();
+
+      requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame((ts) => { lastTime = ts; requestAnimationFrame(loop); });
+
+    return () => {
+      // cleanup listeners on unmount — re-add with named refs would be cleaner
+      // but for this single-mount component this is fine
+    };
+  }, []);
 
   return (
-    <>
-      <canvas
-        className={styles["game-canvas"]}
-        width="600"
-        height="650"
-      ></canvas>
-      <Script></Script>
-    </>
+    <canvas
+      ref={canvasRef}
+      className={styles["game-canvas"]}
+      width={700}
+      height={680}
+    />
   );
 };
