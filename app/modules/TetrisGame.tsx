@@ -281,6 +281,8 @@ export const TetrisGame = () => {
     function applyClears() {
       for (const r of flashRows.slice().sort((a,b) => b - a)) {
         board.splice(r, 1);
+      }
+      for (let i = 0; i < flashRows.length; i++) {
         board.unshift(Array(COLS).fill(null));
       }
       flashRows = [];
